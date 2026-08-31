@@ -90,3 +90,8 @@ tasks.named("clean") {
         file(kaptGeneratedDir).deleteRecursively()
     }
 }
+
+// Fix ktlint task dependency on kapt
+tasks.matching { it.name.startsWith("runKtlintCheck") }.configureEach {
+    dependsOn("kaptKotlin")
+}
