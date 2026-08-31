@@ -1,0 +1,17 @@
+FROM azul/zulu-openjdk-alpine:25-latest AS builder
+WORKDIR /app
+
+COPY . .
+
+RUN chmod +x ./gradlew
+RUN ./gradlew clean build -x test
+
+FROM azul/zulu-openjdk-alpine:25-latest
+WORKDIR /app
+
+COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
+
+RUN apk add --no-cache curl
+
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
