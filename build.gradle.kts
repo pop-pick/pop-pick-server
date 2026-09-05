@@ -62,6 +62,9 @@ dependencies {
     // Api Docs
     implementation(libs.springdoc.openapi)
 
+    // Log
+    implementation(libs.kotlin.logging)
+
     // test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(libs.kotlin.test.junit5)
