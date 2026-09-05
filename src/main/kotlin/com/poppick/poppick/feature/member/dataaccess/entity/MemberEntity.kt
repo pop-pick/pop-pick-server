@@ -2,6 +2,7 @@ package com.poppick.poppick.feature.member.dataaccess.entity
 
 import com.poppick.poppick.feature.member.domain.Member
 import com.poppick.poppick.feature.member.domain.NewMember
+import com.poppick.poppick.global.entity.BaseEntity
 import com.poppick.poppick.security.enums.MemberRole
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
@@ -36,7 +37,7 @@ class MemberEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_id")
     var id: Long? = null,
-) {
+) : BaseEntity() {
     companion object {
         fun from(member: NewMember) =
             MemberEntity(

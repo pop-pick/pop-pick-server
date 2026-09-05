@@ -2,6 +2,7 @@ package com.poppick.poppick.feature.auth.dataaccess.entity
 
 import com.poppick.poppick.feature.auth.domain.OAuthMember
 import com.poppick.poppick.feature.auth.domain.OAuthProvider
+import com.poppick.poppick.global.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -28,7 +29,7 @@ class OAuthEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "oauth_id")
     var id: Long? = null,
-) {
+) : BaseEntity() {
     companion object {
         fun of(
             oAuthMember: OAuthMember,
