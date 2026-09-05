@@ -2,6 +2,7 @@ package com.poppick.poppick.global.advice
 
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
+import com.poppick.poppick.global.response.ApiResponse
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import org.springframework.boot.logging.LogLevel
@@ -56,19 +57,12 @@ class GlobalExceptionHandler {
     }
 
     private fun AppException.toErrorResponse() = ResponseEntity(
-        ErrorResponse(
-            code = errorType.errorCode.name,
-            message = message ?: errorType.message,
-            data = errorData
-        ),
+        ApiResponse.error(errorType, errorData),
         errorType.status
     )
 
     private fun Exception.toErrorResponse() = ResponseEntity(
-        ErrorResponse(
-            code = "INTERNAL_SERVER_ERROR",
-            message = "An unexpected error occurred"
-        ),
+        ApiResponse.error(ErrorType.SERVER_ERROR, this.message),
         HttpStatus.INTERNAL_SERVER_ERROR
     )
 
@@ -76,9 +70,3 @@ class GlobalExceptionHandler {
         private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
     }
 }
-
-data class ErrorResponse(
-    val code: String,
-    val message: String,
-    val data: Any? = null,
-)

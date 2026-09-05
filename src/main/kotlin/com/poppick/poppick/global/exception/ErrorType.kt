@@ -11,6 +11,8 @@ enum class ErrorType(
 ) {
     NOT_FOUND_DATA(HttpStatus.NOT_FOUND, ErrorCode.E404, "해당 데이터를 찾을 수 없습니다.", LogLevel.WARN),
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.E500, "알 수 없는 오류가 발생했습니다.", LogLevel.ERROR),
+    INVALID_PAGING_SIZE(HttpStatus.BAD_REQUEST, ErrorCode.E400, "잘못된 페이징 크기입니다.", LogLevel.WARN),
+    INVALID_PAGING_PARAMETER(HttpStatus.BAD_REQUEST, ErrorCode.E400, "페이징 요소가 누락되었습니다.", LogLevel.WARN),
 
     // Security
     REQUIRED_AUTH(HttpStatus.UNAUTHORIZED, ErrorCode.E1000, "인증이 필요합니다.", LogLevel.WARN),
