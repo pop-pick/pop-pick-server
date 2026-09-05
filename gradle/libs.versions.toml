@@ -9,6 +9,7 @@ mockk = "1.13.17"
 jjwt = "0.12.6"
 querydsl = "7.0"
 springDoc = "3.0.2"
+awsSecretManager = "4.0.0"
 
 [libraries]
 # Kotlin
@@ -36,6 +37,9 @@ micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-p
 
 # Api Docs
 springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDoc" }
+
+# AWS
+aws-secret-manager = { module = "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager", version.ref = "awsSecretManager"}
 
 # Test
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }

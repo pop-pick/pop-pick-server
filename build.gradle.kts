@@ -56,6 +56,9 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     runtimeOnly(libs.micrometer.registry.prometheus)
 
+    // AWS
+    implementation(libs.aws.secret.manager)
+
     // Api Docs
     implementation(libs.springdoc.openapi)
 
