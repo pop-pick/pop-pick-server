@@ -32,7 +32,6 @@ class TokenManager(
         val jti = jwtValidator.getJti(refreshToken)
         validateJwtId(sid, jti)
 
-
         return jwtGenerator.regenerateJwt(memberKey, sid).also {
             refreshSessionStore.save(it.sid, it.refreshJti, it.refreshExpiresAt)
         }

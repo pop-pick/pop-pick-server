@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import: aws-secretsmanager:prod/poppick
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+
+kakao:
+  api-key: ${KAKAO_API_KEY}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}

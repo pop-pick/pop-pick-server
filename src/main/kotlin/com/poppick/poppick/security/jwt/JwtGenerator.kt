@@ -13,7 +13,6 @@ import javax.crypto.SecretKey
 import kotlin.uuid.Uuid
 
 const val TYPE_CLAIM = "type"
-const val JTI_CLAIM = "jti"
 const val SID_CLAIM = "sid"
 private const val ACCESS_TOKEN_EXPIRE_SECONDS = 60L * 60
 private const val REFRESH_TOKEN_EXPIRE_SECONDS = 60L * 60 * 24 * 14
