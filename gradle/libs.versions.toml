@@ -8,20 +8,41 @@ kotest = "6.0.0"
 mockk = "1.13.17"
 jjwt = "0.12.6"
 querydsl = "7.0"
+springDoc = "3.0.2"
 
 [libraries]
+# Kotlin
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" }
+
+# Database
 postgresql = { module = "org.postgresql:postgresql" }
-jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
-jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
-jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
-kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
-kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
-mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+h2 = { module = "com.h2database:h2" }
+mysql-connector-j = { module = "com.mysql:mysql-connector-j" }
+
+# QueryDSL
 querydsl-core = { module = "io.github.openfeign.querydsl:querydsl-core", version.ref = "querydsl" }
 querydsl-jpa = { module = "io.github.openfeign.querydsl:querydsl-jpa", version.ref = "querydsl" }
 querydsl-apt = { module = "io.github.openfeign.querydsl:querydsl-apt", version.ref = "querydsl" }
+
+# JWT
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+# Metrics
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
+# Api Docs
+springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDoc" }
+
+# Test
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

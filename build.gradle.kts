@@ -35,8 +35,8 @@ dependencies {
 
     // db
     runtimeOnly(libs.postgresql)
-    runtimeOnly("com.h2database:h2")
-    runtimeOnly("com.mysql:mysql-connector-j")
+    runtimeOnly(libs.h2)
+    runtimeOnly(libs.mysql.connector.j)
 
     implementation(libs.querydsl.core)
     implementation(libs.querydsl.jpa)
@@ -49,13 +49,23 @@ dependencies {
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
 
+    // Redis
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
+    // Metric
+    implementation(libs.spring.boot.starter.actuator)
+    runtimeOnly(libs.micrometer.registry.prometheus)
+
+    // Api Docs
+    implementation(libs.springdoc.openapi)
+
     // test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.mockk)
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 kotlin {
