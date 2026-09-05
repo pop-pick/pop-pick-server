@@ -1,4 +1,4 @@
-package com.poppick.poppick.feature.auth.service
+package com.poppick.poppick.feature.auth.business
 
 import com.poppick.poppick.feature.auth.domain.Jwt
 import com.poppick.poppick.feature.auth.implement.TokenManager

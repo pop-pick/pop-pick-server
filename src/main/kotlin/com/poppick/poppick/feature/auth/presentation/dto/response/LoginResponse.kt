@@ -1,4 +1,4 @@
-package com.poppick.poppick.feature.auth.controller.dto.response
+package com.poppick.poppick.feature.auth.presentation.dto.response
 
 data class LoginResponse(
     val accessToken: String,

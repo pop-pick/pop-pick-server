@@ -1,11 +1,11 @@
-package com.poppick.poppick.feature.auth.controller
+package com.poppick.poppick.feature.auth.presentation
 
-import com.poppick.poppick.feature.auth.controller.dto.request.LoginRequest
-import com.poppick.poppick.feature.auth.controller.dto.request.LogoutRequest
-import com.poppick.poppick.feature.auth.controller.dto.request.RefreshRequest
-import com.poppick.poppick.feature.auth.controller.dto.response.LoginResponse
-import com.poppick.poppick.feature.auth.service.OAuthService
-import com.poppick.poppick.feature.auth.service.TokenService
+import com.poppick.poppick.feature.auth.presentation.dto.request.LoginRequest
+import com.poppick.poppick.feature.auth.presentation.dto.request.LogoutRequest
+import com.poppick.poppick.feature.auth.presentation.dto.request.RefreshRequest
+import com.poppick.poppick.feature.auth.presentation.dto.response.LoginResponse
+import com.poppick.poppick.feature.auth.business.OAuthService
+import com.poppick.poppick.feature.auth.business.TokenService
 import com.poppick.poppick.global.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag

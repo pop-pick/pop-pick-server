@@ -1,4 +1,4 @@
-package com.poppick.poppick.feature.auth.controller.dto.request
+package com.poppick.poppick.feature.auth.presentation.dto.request
 
 import com.poppick.poppick.feature.auth.domain.OAuthLogin
 import com.poppick.poppick.feature.auth.domain.OAuthProvider
