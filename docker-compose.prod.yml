@@ -27,6 +27,15 @@ services:
     entrypoint: >
       /bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - poppick
+    volumes:
+      - redis-data:/data
+
   spring_blue:
     image: eazy123/pop-pick:latest
     container_name: spring_blue
@@ -42,6 +51,8 @@ services:
     volumes:
       - ./:/app/local
       - /var/log/poppick-log:/var/log/poppick-log
+    depends_on:
+      - redis
 
   spring_green:
     image: eazy123/pop-pick:latest
@@ -58,6 +69,8 @@ services:
     volumes:
       - ./:/app/local
       - /var/log/poppick-log:/var/log/poppick-log
+    depends_on:
+      - redis
 
   promtail:
     image: grafana/promtail:latest
@@ -73,3 +86,6 @@ services:
 networks:
   poppick:
     driver: bridge
+
+volumes:
+  redis-data:
