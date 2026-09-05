@@ -54,6 +54,6 @@ class TokenManager(
         runCatching {
             jwtValidator.validateTokenType(refreshToken, TokenType.REFRESH)
             refreshSessionStore.revoke(jwtValidator.getSid(refreshToken))
-        }.onFailure { logger.warn("${ErrorType.FAILED_REVOKE_ACCESS.message} ${it.message}") }
+        }.onFailure { logger.warn("${ErrorType.FAILED_REVOKE_REFRESH.message} ${it.message}") }
     }
 }
