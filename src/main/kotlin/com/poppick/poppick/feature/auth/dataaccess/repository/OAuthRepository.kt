@@ -6,5 +6,8 @@ import com.poppick.poppick.feature.auth.domain.OAuthProvider
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface OAuthRepository : JpaRepository<OAuthEntity, Long> {
-    fun findByAccountAndProvider(account: String, provider: OAuthProvider): OAuth?
+    fun findByAccountAndProvider(
+        account: String,
+        provider: OAuthProvider,
+    ): OAuth?
 }

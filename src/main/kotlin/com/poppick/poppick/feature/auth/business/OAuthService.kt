@@ -20,8 +20,9 @@ class OAuthService(
         authenticators.associateBy { it.provider }
 
     fun login(oAuthLogin: OAuthLogin): Jwt {
-        val oAuthMember = oAuthAuthenticatorMap[oAuthLogin.oAuthProvider]?.authenticate(oAuthLogin)
-            ?: throw AppException(ErrorType.UNSUPPORTED_PROVIDER)
+        val oAuthMember =
+            oAuthAuthenticatorMap[oAuthLogin.oAuthProvider]?.authenticate(oAuthLogin)
+                ?: throw AppException(ErrorType.UNSUPPORTED_PROVIDER)
 
         val memberKey = oAuthRegistrar.registerIfNewAndGetMemberKey(oAuthMember)
 

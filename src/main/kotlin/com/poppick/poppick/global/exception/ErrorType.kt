@@ -30,7 +30,6 @@ enum class ErrorType(
     FAILED_REVOKE_ACCESS(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.E1012, "Access Blacklist 삭제를 실패했습니다.", LogLevel.ERROR),
     FAILED_REVOKE_REFRESH(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.E1013, "Refresh sid 삭제를 실패했습니다.", LogLevel.ERROR),
 
-
     // Member
     INVALID_MEMBER_KEY(HttpStatus.BAD_REQUEST, ErrorCode.E2000, "멤버 key가 유효하지 않습니다.", LogLevel.WARN),
     INVALID_EMAIL(HttpStatus.BAD_REQUEST, ErrorCode.E1002, "이메일이 유효하지 않습니다.", LogLevel.WARN),

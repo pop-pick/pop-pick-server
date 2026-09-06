@@ -18,20 +18,20 @@ class SecurityConfig(
     private val exceptionTranslationFilter: AuthenticationExceptionTranslationFilter,
     private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint,
 ) {
-
     @Bean
-    fun webSecurityCustomizer() = WebSecurityCustomizer { web ->
-        web.ignoring().requestMatchers(
-            "/h2-console/**",
-            "/v3/swagger-ui/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/swagger-ui.html",
-            "/api-docs/**",
-            "/favicon.ico",
-            "/error",
-        )
-    }
+    fun webSecurityCustomizer() =
+        WebSecurityCustomizer { web ->
+            web.ignoring().requestMatchers(
+                "/h2-console/**",
+                "/v3/swagger-ui/**",
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/swagger-ui.html",
+                "/api-docs/**",
+                "/favicon.ico",
+                "/error",
+            )
+        }
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {

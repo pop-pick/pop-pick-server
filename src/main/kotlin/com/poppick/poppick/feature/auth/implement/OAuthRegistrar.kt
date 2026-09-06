@@ -17,9 +17,8 @@ class OAuthRegistrar(
         oAuthRepository.findByAccountAndProvider(oAuthMember.account, oAuthMember.provider)?.memberKey
             ?: register(oAuthMember)
 
-    private fun register(oAuthMember: OAuthMember): String {
-        return memberRegistrar.register(oAuthMember.toNewMember()).also {
+    private fun register(oAuthMember: OAuthMember): String =
+        memberRegistrar.register(oAuthMember.toNewMember()).also {
             oAuthRepository.save(OAuthEntity.of(oAuthMember, it))
         }
-    }
 }

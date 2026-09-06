@@ -18,13 +18,10 @@ class OAuthEntity(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var provider: OAuthProvider,
-
     @Column(nullable = false)
     var account: String,
-
     @Column(nullable = false)
     var memberKey: String,
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "oauth_id")

@@ -11,7 +11,11 @@ private const val SESSION_KEY_PREFIX = "session:"
 class RefreshSessionStore(
     private val redisTemplate: StringRedisTemplate,
 ) {
-    fun save(sid: String, jti: String, expiresAt: Instant) {
+    fun save(
+        sid: String,
+        jti: String,
+        expiresAt: Instant,
+    ) {
         val ttl = Duration.between(Instant.now(), expiresAt)
         if (ttl.isZero || ttl.isNegative) return
 

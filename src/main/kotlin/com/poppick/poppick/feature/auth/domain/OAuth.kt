@@ -5,5 +5,4 @@ class OAuth(
     val account: String,
     val memberKey: String,
     val id: Long,
-) {
-}
+)

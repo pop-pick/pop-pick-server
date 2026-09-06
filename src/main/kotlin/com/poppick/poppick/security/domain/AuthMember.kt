@@ -9,7 +9,6 @@ class AuthMember(
     private val attributes: Map<String, Any>,
     private val authorities: Collection<GrantedAuthority>,
 ) : OAuth2User {
-
     override fun getAttributes(): Map<String, Any> = attributes
 
     override fun getAuthorities(): Collection<GrantedAuthority> = authorities

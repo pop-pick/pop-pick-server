@@ -37,14 +37,20 @@ class TokenManager(
         }
     }
 
-    private fun validateJwtId(sid: String, jti: String) {
+    private fun validateJwtId(
+        sid: String,
+        jti: String,
+    ) {
         if (refreshSessionStore.findCurrentJti(sid) != jti) {
             refreshSessionStore.revoke(sid)
             throw AppException(ErrorType.INVALID_REFRESH_SESSION)
         }
     }
 
-    fun revoke(accessToken: String, refreshToken: String) {
+    fun revoke(
+        accessToken: String,
+        refreshToken: String,
+    ) {
         runCatching {
             val tokenBody = jwtValidator.getBearerTokenBody(accessToken)
             jwtValidator.validateTokenType(tokenBody, TokenType.ACCESS)

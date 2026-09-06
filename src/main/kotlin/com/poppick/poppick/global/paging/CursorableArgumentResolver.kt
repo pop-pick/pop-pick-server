@@ -23,7 +23,7 @@ class CursorableArgumentResolver : HandlerMethodArgumentResolver {
         webRequest: NativeWebRequest,
         binderFactory: WebDataBinderFactory?,
     ): Any? {
-        val annotation = parameter.getParameterAnnotation(/* annotationType = */ CursorDefault::class.java)
+        val annotation = parameter.getParameterAnnotation(CursorDefault::class.java)
         val limit =
             webRequest.getParameter(LIMIT)?.toIntOrNull()
                 ?: annotation?.defaultLimit

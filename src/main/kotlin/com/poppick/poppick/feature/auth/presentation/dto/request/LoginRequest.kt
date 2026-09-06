@@ -8,9 +8,10 @@ data class LoginRequest(
     val authToken: String,
     val redirectUri: String,
 ) {
-    fun toOAuthLogin() = OAuthLogin(
-        oAuthProvider = oAuthProvider,
-        authToken = authToken,
-        redirectUri = redirectUri,
-    )
+    fun toOAuthLogin() =
+        OAuthLogin(
+            oAuthProvider = oAuthProvider,
+            authToken = authToken,
+            redirectUri = redirectUri,
+        )
 }

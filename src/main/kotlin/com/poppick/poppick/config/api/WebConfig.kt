@@ -6,7 +6,6 @@ import org.springframework.util.AntPathMatcher
 
 @Configuration
 class WebConfig {
-
     @Bean
     fun antPathMatcher() = AntPathMatcher()
 }

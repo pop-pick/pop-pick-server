@@ -20,7 +20,8 @@ data class OAuthMember(
         )
     }
 
-    fun toNewMember() = NewMember(
-        email = email,
-    )
+    fun toNewMember() =
+        NewMember(
+            email = email,
+        )
 }

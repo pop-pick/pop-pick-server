@@ -21,12 +21,17 @@ private const val REFRESH_TOKEN_EXPIRE_SECONDS = 60L * 60 * 24 * 14
 class JwtGenerator(
     private val secretKey: SecretKey,
 ) {
-
     fun generateJwt(memberKey: String): Jwt = issueJwt(memberKey, sid = Uuid.random().toString())
 
-    fun regenerateJwt(memberKey: String, sid: String): Jwt = issueJwt(memberKey, sid)
+    fun regenerateJwt(
+        memberKey: String,
+        sid: String,
+    ): Jwt = issueJwt(memberKey, sid)
 
-    private fun issueJwt(memberKey: String, sid: String): Jwt {
+    private fun issueJwt(
+        memberKey: String,
+        sid: String,
+    ): Jwt {
         if (memberKey.isBlank()) {
             throw AppException(ErrorType.INVALID_MEMBER_KEY)
         }
@@ -46,18 +51,19 @@ class JwtGenerator(
         )
     }
 
-    private fun buildAccessToken(memberKey: String) = buildToken(
-        memberKey = memberKey,
-        tokenType = TokenType.ACCESS,
-        expiresAt = Instant.now().plusSeconds(ACCESS_TOKEN_EXPIRE_SECONDS),
-        jti = Uuid.random().toString(),
-    )
+    private fun buildAccessToken(memberKey: String) =
+        buildToken(
+            memberKey = memberKey,
+            tokenType = TokenType.ACCESS,
+            expiresAt = Instant.now().plusSeconds(ACCESS_TOKEN_EXPIRE_SECONDS),
+            jti = Uuid.random().toString(),
+        )
 
     private fun buildRefreshToken(
         memberKey: String,
         refreshExpiresAt: Instant,
         refreshJti: String,
-        sid: String
+        sid: String,
     ) = buildToken(
         memberKey = memberKey,
         tokenType = TokenType.REFRESH,
@@ -73,11 +79,13 @@ class JwtGenerator(
         jti: String,
         sid: String? = null,
     ): String {
-        val builder = Jwts.builder()
-            .subject(memberKey)
-            .claim(TYPE_CLAIM, tokenType.name)
-            .claim(Claims.ID, jti)
-            .expiration(Date.from(expiresAt))
+        val builder =
+            Jwts
+                .builder()
+                .subject(memberKey)
+                .claim(TYPE_CLAIM, tokenType.name)
+                .claim(Claims.ID, jti)
+                .expiration(Date.from(expiresAt))
 
         sid?.let { builder.claim(SID_CLAIM, it) }
 

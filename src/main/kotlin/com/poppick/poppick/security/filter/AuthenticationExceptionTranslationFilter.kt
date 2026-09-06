@@ -13,11 +13,10 @@ class AuthenticationExceptionTranslationFilter(
     @Qualifier("handlerExceptionResolver")
     private val resolver: HandlerExceptionResolver,
 ) : OncePerRequestFilter() {
-
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
-        filterChain: FilterChain
+        filterChain: FilterChain,
     ) {
         runCatching {
             filterChain.doFilter(request, response)

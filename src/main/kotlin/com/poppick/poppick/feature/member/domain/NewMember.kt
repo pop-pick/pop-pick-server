@@ -6,11 +6,10 @@ class NewMember(
     val email: Email,
 ) {
     companion object {
-        fun of(
-            email: String,
-        ) = NewMember(
-            email = Email(email),
-        )
+        fun of(email: String) =
+            NewMember(
+                email = Email(email),
+            )
     }
 
     val emailValue: String

@@ -16,23 +16,20 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.Table
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "member")
 class MemberEntity(
     @Column(unique = true, nullable = false)
     var memberKey: String,
-
     @Column(nullable = true)
     var email: String,
-
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "member_roles", joinColumns = [JoinColumn(name = "member_id")])
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     var roles: MutableSet<MemberRole> = mutableSetOf(MemberRole.ROLE_USER),
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_id")

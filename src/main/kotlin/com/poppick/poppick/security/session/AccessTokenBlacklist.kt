@@ -11,7 +11,10 @@ private const val BLACKLIST_KEY_PREFIX = "blacklist:access:"
 class AccessTokenBlacklist(
     private val redisTemplate: StringRedisTemplate,
 ) {
-    fun add(jti: String, expiresAt: Instant) {
+    fun add(
+        jti: String,
+        expiresAt: Instant,
+    ) {
         val ttl = Duration.between(Instant.now(), expiresAt)
         if (ttl.isZero || ttl.isNegative) return
 

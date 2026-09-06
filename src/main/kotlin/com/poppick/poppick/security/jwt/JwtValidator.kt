@@ -3,7 +3,12 @@ package com.poppick.poppick.security.jwt
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.security.enums.TokenType
-import io.jsonwebtoken.*
+import io.jsonwebtoken.Claims
+import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.Jws
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.MalformedJwtException
+import io.jsonwebtoken.UnsupportedJwtException
 import io.jsonwebtoken.security.SecurityException
 import org.springframework.stereotype.Component
 import java.security.SignatureException
@@ -16,21 +21,25 @@ const val BEARER = "Bearer "
 class JwtValidator(
     private val secretKey: SecretKey,
 ) {
-    fun getSubject(token: String) = getClaimsIfValid(token)
-        .subject
-        ?: throw AppException(ErrorType.INVALID_JWT)
+    fun getSubject(token: String) =
+        getClaimsIfValid(token)
+            .subject
+            ?: throw AppException(ErrorType.INVALID_JWT)
 
-    fun getJti(token: String) = getClaimsIfValid(token)
-        .get(Claims.ID, String::class.java)
-        ?: throw AppException(ErrorType.INVALID_JWT)
+    fun getJti(token: String) =
+        getClaimsIfValid(token)
+            .get(Claims.ID, String::class.java)
+            ?: throw AppException(ErrorType.INVALID_JWT)
 
-    fun getSid(token: String) = getClaimsIfValid(token)
-        .get(SID_CLAIM, String::class.java)
-        ?: throw AppException(ErrorType.INVALID_JWT)
+    fun getSid(token: String) =
+        getClaimsIfValid(token)
+            .get(SID_CLAIM, String::class.java)
+            ?: throw AppException(ErrorType.INVALID_JWT)
 
-    private fun getTokenType(token: String) = getClaimsIfValid(token)
-        .get(TYPE_CLAIM, String::class.java)
-        ?: throw AppException(ErrorType.INVALID_JWT)
+    private fun getTokenType(token: String) =
+        getClaimsIfValid(token)
+            .get(TYPE_CLAIM, String::class.java)
+            ?: throw AppException(ErrorType.INVALID_JWT)
 
     fun getExpiresAt(token: String): Instant = getClaimsIfValid(token).expiration.toInstant()
 
@@ -42,7 +51,10 @@ class JwtValidator(
         return token.removePrefix(BEARER)
     }
 
-    fun validateTokenType(token: String, expectedType: TokenType) {
+    fun validateTokenType(
+        token: String,
+        expectedType: TokenType,
+    ) {
         if (getTokenType(token) != expectedType.name) {
             throw AppException(ErrorType.INVALID_TOKEN_TYPE)
         }

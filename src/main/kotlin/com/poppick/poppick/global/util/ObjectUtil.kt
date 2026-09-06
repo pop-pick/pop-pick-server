@@ -6,6 +6,6 @@ import tools.jackson.core.type.TypeReference
 import tools.jackson.databind.ObjectMapper
 
 fun Any.toMultiValueMap(objectMapper: ObjectMapper): MultiValueMap<String, String> {
-    val map : Map<String, String> = objectMapper.convertValue(this, object : TypeReference<Map<String, String>>() {})
+    val map: Map<String, String> = objectMapper.convertValue(this, object : TypeReference<Map<String, String>>() {})
     return LinkedMultiValueMap<String, String>().apply { setAll(map) }
 }

@@ -1,13 +1,13 @@
 package com.poppick.poppick.security.authenticator
 
-import com.poppick.poppick.global.exception.AppException
-import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.feature.auth.domain.OAuthLogin
 import com.poppick.poppick.feature.auth.domain.OAuthProvider
 import com.poppick.poppick.feature.auth.implement.OAuthAuthenticator
+import com.poppick.poppick.global.exception.AppException
+import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.util.toMultiValueMap
-import com.poppick.poppick.security.domain.KakaoAuthRequest
 import com.poppick.poppick.security.domain.KakaoAccessToken
+import com.poppick.poppick.security.domain.KakaoAuthRequest
 import com.poppick.poppick.security.domain.KakaoUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -39,29 +39,30 @@ class KakaoAuthenticator(
         }.getOrElse { throw AppException(ErrorType.INVALID_OAUTH_USER, cause = it) }
             .toOAuthMember()
 
-    private fun authorize(oAuthLogin: OAuthLogin): KakaoAccessToken = runCatching {
-        fetchAccessToken(oAuthLogin)
-    }.getOrElse { throw AppException(ErrorType.FAILED_AUTH, cause = it) }
+    private fun authorize(oAuthLogin: OAuthLogin): KakaoAccessToken =
+        runCatching {
+            fetchAccessToken(oAuthLogin)
+        }.getOrElse { throw AppException(ErrorType.FAILED_AUTH, cause = it) }
 
-    private fun fetchKakaoUser(token: KakaoAccessToken): KakaoUser = restClient
-        .get()
-        .uri(KAKAO_USER_INFO_URL)
-        .header(HttpHeaders.AUTHORIZATION, "Bearer ${token.accessToken}")
-        .retrieve()
-        .body<KakaoUser>()!!
+    private fun fetchKakaoUser(token: KakaoAccessToken): KakaoUser =
+        restClient
+            .get()
+            .uri(KAKAO_USER_INFO_URL)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${token.accessToken}")
+            .retrieve()
+            .body<KakaoUser>()!!
 
-    private fun fetchAccessToken(oAuthLogin: OAuthLogin): KakaoAccessToken = restClient
-        .post()
-        .uri(KAKAO_TOKEN_REQUEST_URL)
-        .contentType(MediaType(APPLICATION_FORM_URLENCODED, UTF_8))
-        .body(
-            KakaoAuthRequest(
-                clientId = restApiKey,
-                code = oAuthLogin.authToken,
-                redirectUri = oAuthLogin.redirectUri,
-            ).toMultiValueMap(objectMapper)
-        )
-        .retrieve()
-        .body<KakaoAccessToken>()!!
-
+    private fun fetchAccessToken(oAuthLogin: OAuthLogin): KakaoAccessToken =
+        restClient
+            .post()
+            .uri(KAKAO_TOKEN_REQUEST_URL)
+            .contentType(MediaType(APPLICATION_FORM_URLENCODED, UTF_8))
+            .body(
+                KakaoAuthRequest(
+                    clientId = restApiKey,
+                    code = oAuthLogin.authToken,
+                    redirectUri = oAuthLogin.redirectUri,
+                ).toMultiValueMap(objectMapper),
+            ).retrieve()
+            .body<KakaoAccessToken>()!!
 }

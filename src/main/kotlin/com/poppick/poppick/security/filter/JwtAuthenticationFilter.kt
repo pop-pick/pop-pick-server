@@ -25,21 +25,21 @@ class JwtAuthenticationFilter(
     private val antPathMatcher: AntPathMatcher,
 ) : OncePerRequestFilter() {
     companion object {
-        private val PUBLIC_ENDPOINTS = listOf(
-            "/actuator",
-            "/health",
-            "/api/v1/auth/**",
-        )
+        private val PUBLIC_ENDPOINTS =
+            listOf(
+                "/actuator",
+                "/health",
+                "/api/v1/auth/**",
+            )
     }
 
-    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        return PUBLIC_ENDPOINTS.any { antPathMatcher.match(it, request.requestURI) }
-    }
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean =
+        PUBLIC_ENDPOINTS.any { antPathMatcher.match(it, request.requestURI) }
 
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
-        filterChain: FilterChain
+        filterChain: FilterChain,
     ) {
         getTokenFromHeader(request)?.let { authenticate(it) }
 

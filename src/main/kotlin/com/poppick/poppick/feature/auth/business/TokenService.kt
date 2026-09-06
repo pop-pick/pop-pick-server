@@ -10,5 +10,8 @@ class TokenService(
 ) {
     fun refresh(refreshToken: String): Jwt = tokenManager.reissue(refreshToken)
 
-    fun logout(accessToken: String, refreshToken: String) = tokenManager.revoke(accessToken, refreshToken)
+    fun logout(
+        accessToken: String,
+        refreshToken: String,
+    ) = tokenManager.revoke(accessToken, refreshToken)
 }
