@@ -2,7 +2,7 @@ spring:
   config:
     activate:
       on-profile: local
-    import: aws-secretsmanager:local/poppick
+#    import: aws-secretsmanager:local/poppick
 
   data:
     redis:
@@ -10,11 +10,11 @@ spring:
       port: ${REDIS_PORT:6379}
 
 kakao:
-  api-key: ${KAKAO_API_KEY}
+  api-key: ${KAKAO_API_KEY:11}
 
 google:
-  client-id: ${GOOGLE_CLIENT_ID}
-  client-secret: ${GOOGLE_CLIENT_SECRET}
+  client-id: ${GOOGLE_CLIENT_ID:11}
+  client-secret: ${GOOGLE_CLIENT_SECRET:11}
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
