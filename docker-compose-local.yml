@@ -1,0 +1,25 @@
+# 로컬 개발용 Redis
+# 실행:   docker compose -f docker-compose-local.yml up -d
+# 종료:   docker compose -f docker-compose-local.yml down      (데이터 유지)
+#         docker compose -f docker-compose-local.yml down -v   (데이터 삭제)
+# 접속:   docker exec -it redis-local redis-cli
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-local
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-local-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-local-data:
