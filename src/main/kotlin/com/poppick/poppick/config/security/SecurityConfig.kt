@@ -45,6 +45,7 @@ class SecurityConfig(
                 authorize("/actuator", permitAll)
                 authorize("/actuator/**", permitAll)
                 authorize("/api/v1/auth/**", permitAll)
+                authorize("/api/v1/onboardings/**", permitAll)
                 authorize(anyRequest, authenticated)
             }
 

@@ -13,6 +13,7 @@ enum class ErrorType(
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.E500, "알 수 없는 오류가 발생했습니다.", LogLevel.ERROR),
     INVALID_PAGING_SIZE(HttpStatus.BAD_REQUEST, ErrorCode.E400, "잘못된 페이징 크기입니다.", LogLevel.WARN),
     INVALID_PAGING_PARAMETER(HttpStatus.BAD_REQUEST, ErrorCode.E400, "페이징 요소가 누락되었습니다.", LogLevel.WARN),
+    ALREADY_REGISTERED(HttpStatus.BAD_REQUEST, ErrorCode.E400, "이미 데이터가 존재합니다.", LogLevel.WARN),
 
     // Security
     REQUIRED_AUTH(HttpStatus.UNAUTHORIZED, ErrorCode.E1000, "인증이 필요합니다.", LogLevel.WARN),
