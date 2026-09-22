@@ -9,6 +9,9 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
 
+logging:
+  config: classpath:logback-prod.xml
+
 kakao:
   api-key: ${KAKAO_API_KEY}
 
