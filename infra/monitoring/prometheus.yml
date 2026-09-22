@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  query_log_file: /etc/prometheus/prometheus.log
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "poppick-prod"
+    metrics_path: /actuator/prometheus
+    scheme: https
+    static_configs:
+      - targets: ["prod.poppick.shop"]
