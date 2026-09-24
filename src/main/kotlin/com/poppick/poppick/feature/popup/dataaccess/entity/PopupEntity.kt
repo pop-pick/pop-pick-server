@@ -1,9 +1,7 @@
 package com.poppick.poppick.feature.popup.dataaccess.entity
 
-import com.poppick.poppick.feature.popup.domain.EnrichStatus
 import com.poppick.poppick.feature.popup.domain.PlaceResolution
 import com.poppick.poppick.feature.popup.domain.Popup
-import com.poppick.poppick.feature.popup.domain.PopupStatus
 import com.poppick.poppick.feature.popup.domain.ReservationType
 import com.poppick.poppick.feature.popup.domain.SourceType
 import com.poppick.poppick.global.entity.BaseEntity
@@ -52,7 +50,7 @@ class PopupEntity(
     var imageUrls: List<String>? = null,
     /** 운영 시작일. */
     var startDate: LocalDate? = null,
-    /** 운영 종료일. 지나면 만료 스윕에서 EXPIRED 로 전환. */
+    /** 운영 종료일. 종료 여부는 저장하지 않고 조회 시 end_date < today 로 계산한다. */
     var endDate: LocalDate? = null,
     /** 요일별 운영 시간. 예: {"mon": "11:00-20:00"} */
     @JdbcTypeCode(SqlTypes.JSON)
@@ -82,17 +80,10 @@ class PopupEntity(
     /** 장소를 얼마나 정확히 특정했는지(EXACT · VENUE · UNRESOLVED). */
     @Enumerated(EnumType.STRING)
     var placeResolution: PlaceResolution? = null,
-    /** 노출 · 생명주기 상태. 신규 수집분은 DRAFT. */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var status: PopupStatus = PopupStatus.DRAFT,
-    /** 마지막 보강 결과. 보강 전엔 NULL. */
-    @Enumerated(EnumType.STRING)
-    var enrichStatus: EnrichStatus? = null,
-    /** 보강 재시도 횟수. */
+    /** 보강 후에도 핵심 필드(기간 · 카테고리)를 다 채우지 못한 횟수. 한도 미만이고 핵심 필드가 비면 재보강 대상. */
     @Column(nullable = false)
     var enrichRetryCount: Int = 0,
-    /** 마지막 보강 시각(타임존 포함). */
+    /** 마지막 보강 시각(타임존 포함). NULL 이면 아직 보강하지 않은 팝업. */
     var enrichedAt: OffsetDateTime? = null,
     /** 팝업 식별자(popup_id). 저장 전엔 NULL. */
     @Id
@@ -127,8 +118,6 @@ class PopupEntity(
                 latitude = popup.latitude,
                 longitude = popup.longitude,
                 placeResolution = popup.placeResolution,
-                status = popup.status,
-                enrichStatus = popup.enrichStatus,
                 enrichRetryCount = popup.enrichRetryCount,
                 enrichedAt = popup.enrichedAt,
                 id = popup.id,
@@ -161,8 +150,6 @@ class PopupEntity(
             latitude = latitude,
             longitude = longitude,
             placeResolution = placeResolution,
-            status = status,
-            enrichStatus = enrichStatus,
             enrichRetryCount = enrichRetryCount,
             enrichedAt = enrichedAt,
             id = id,

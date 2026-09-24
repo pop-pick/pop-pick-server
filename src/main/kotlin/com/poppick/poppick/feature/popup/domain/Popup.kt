@@ -26,7 +26,7 @@ data class Popup(
     val imageUrls: List<String>? = null,
     /** 운영 시작일. */
     val startDate: LocalDate? = null,
-    /** 운영 종료일. 지나면 만료 스윕에서 EXPIRED 로 전환. */
+    /** 운영 종료일. 종료 여부는 저장하지 않고 조회 시 end_date < today 로 계산한다. */
     val endDate: LocalDate? = null,
     /** 요일별 운영 시간. 예: {"mon": "11:00-20:00"} */
     val openingHours: Map<String, String>? = null,
@@ -52,14 +52,16 @@ data class Popup(
     val longitude: Double? = null,
     /** 장소를 얼마나 정확히 특정했는지(EXACT · VENUE · UNRESOLVED). */
     val placeResolution: PlaceResolution? = null,
-    /** 노출 · 생명주기 상태. 신규 수집분은 DRAFT. */
-    val status: PopupStatus = PopupStatus.DRAFT,
-    /** 마지막 보강 결과. 보강 전엔 NULL. */
-    val enrichStatus: EnrichStatus? = null,
-    /** 보강 재시도 횟수. */
+    /**
+     * 보강 후에도 핵심 필드(기간 · 카테고리)를 다 채우지 못한 횟수(정보를 못 찾은 경우 포함).
+     * 한도 미만이고 핵심 필드가 비어 있으면 재보강 대상이 된다.
+     */
     val enrichRetryCount: Int = 0,
-    /** 마지막 보강 시각(타임존 포함). */
+    /** 마지막 보강 시각(타임존 포함). NULL 이면 아직 보강하지 않은 팝업. */
     val enrichedAt: OffsetDateTime? = null,
     /** 팝업 식별자(popup_id). 저장 전엔 NULL. */
     val id: Long? = null,
-)
+) {
+    /** 핵심 필드(시작일 · 종료일 · 카테고리)가 모두 채워졌는지. 하나라도 비면 재보강 대상 후보. */
+    fun hasCoreFields() = startDate != null && endDate != null && interestCategoryId != null
+}
