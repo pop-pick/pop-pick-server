@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "found": { "type": "boolean" },
+    "matches_place": { "type": "boolean" },
+    "title": { "type": ["string", "null"] },
+    "brand": { "type": ["string", "null"] },
+    "interest_category": { "type": ["string", "null"], "enum": ["캐릭터/IP", "패션/브랜드", "F&B", "전시/아트", "뷰티", "게임/엔터", "라이프스타일", "기타", null] },
+    "description": { "type": ["string", "null"] },
+    "tags": { "type": ["array", "null"], "items": { "type": "string" }, "maxItems": 10 },
+    "start_date": { "type": ["string", "null"] },
+    "end_date": { "type": ["string", "null"] },
+    "opening_hours": { "type": ["object", "null"], "additionalProperties": { "type": "string" } },
+    "reservation_type": { "type": "string", "enum": ["NONE", "RESERVATION", "WAITING", "BOTH", "UNKNOWN"] },
+    "reservation_url": { "type": ["string", "null"] },
+    "reservation_open_at": { "type": ["string", "null"] },
+    "entry_fee": { "type": ["integer", "null"] }
+  },
+  "required": ["found", "matches_place", "reservation_type"]
+}
