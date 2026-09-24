@@ -10,6 +10,34 @@ spring:
 
 kakao:
   api-key: test-kakao-api-key
+  map:
+    base-url: https://dapi.kakao.com
+    # 검색 영역 사각형(좌하단 경도,위도,우상단 경도,위도). 서울 전역.
+    seoul-rect: "126.764,37.413,127.184,37.715"
+    max-page: 3
+    page-delay-ms: 100
+
+perplexity:
+  api-key: test-perplexity-api-key
+  base-url: https://api.perplexity.ai
+  # json_schema + web_search 조합이 동작하는 모델만 쓴다(anthropic 계열 금지).
+  model: openai/gpt-6-luna
+  read-timeout-seconds: 120
+  requests-per-second: 1.0
+
+collection:
+  # Asia/Seoul 기준
+  cron: "0 30 5 * * *"
+  enrich-limit: 200
+  # 총 시도 횟수(최초 1회 + 재보강 1회)
+  enrich-retry-limit: 2
+  enrich-retry-interval: 7d
+  collect-timeout: 5m
+  enrich-timeout: 30m
+  kakao:
+    threads: 4
+  perplexity:
+    threads: 3
 
 google:
   client-id: test-google-client-id
