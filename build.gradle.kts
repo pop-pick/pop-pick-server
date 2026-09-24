@@ -37,6 +37,7 @@ dependencies {
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.h2)
     runtimeOnly(libs.mysql.connector.j)
+    implementation(libs.hibernate.vector)
 
     implementation(libs.querydsl.core)
     implementation(libs.querydsl.jpa)
