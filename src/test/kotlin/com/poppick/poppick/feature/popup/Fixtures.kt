@@ -1,0 +1,30 @@
+package com.poppick.poppick.feature.popup
+
+import com.poppick.poppick.config.properties.CollectionProperties
+import org.springframework.core.io.ClassPathResource
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
+import java.time.Duration
+
+object Fixtures {
+    val jsonMapper: JsonMapper = JsonMapper.builder().addModule(KotlinModule.Builder().build()).build()
+
+    fun read(path: String): String = ClassPathResource("fixtures/$path").getContentAsString(Charsets.UTF_8)
+
+    /** yml(collection.*) 과 같은 값. 테스트마다 필요한 것만 바꿔 쓴다. */
+    fun collectionProperties(
+        enrichRetryLimit: Int = 2,
+        collectTimeout: Duration = Duration.ofMinutes(5),
+        enrichTimeout: Duration = Duration.ofMinutes(30),
+        perplexityThreads: Int = 3,
+    ) = CollectionProperties(
+        cron = "0 30 5 * * *",
+        enrichLimit = 200,
+        enrichRetryLimit = enrichRetryLimit,
+        enrichRetryInterval = Duration.ofDays(7),
+        collectTimeout = collectTimeout,
+        enrichTimeout = enrichTimeout,
+        kakao = CollectionProperties.Pool(threads = 4),
+        perplexity = CollectionProperties.Pool(threads = perplexityThreads),
+    )
+}
