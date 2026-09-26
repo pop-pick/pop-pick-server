@@ -34,13 +34,15 @@ class PopupEntity(
     @JdbcTypeCode(SqlTypes.JSON)
     var rawPayload: Map<String, Any?>? = null,
     /** 팝업 이름. */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     var title: String,
     /** 주최 브랜드 또는 IP(캐릭터 · 작품 등). */
+    @Column(length = 500)
     var brand: String? = null,
     /** 관심 카테고리 id(interest_category FK). 1 캐릭터/IP · 2 패션/브랜드 · 3 F&B · 4 전시/아트 · 5 뷰티 · 6 게임/엔터 · 7 라이프스타일 · 8 기타. 보강 전엔 NULL. */
     var interestCategoryId: Int? = null,
     /** 팝업 소개 문구. */
+    @Column(columnDefinition = "text")
     var description: String? = null,
     /** 세부 키워드 목록. */
     @JdbcTypeCode(SqlTypes.ARRAY)
@@ -52,14 +54,15 @@ class PopupEntity(
     var startDate: LocalDate? = null,
     /** 운영 종료일. 종료 여부는 저장하지 않고 조회 시 end_date < today 로 계산한다. */
     var endDate: LocalDate? = null,
-    /** 요일별 운영 시간. 예: {"mon": "11:00-20:00"} */
-    @JdbcTypeCode(SqlTypes.JSON)
-    var openingHours: Map<String, String>? = null,
+    /** 운영시간 · 휴무 한 줄. 예: "매일 11:00~20:00, 월 휴무" */
+    @Column(columnDefinition = "text")
+    var openingHours: String? = null,
     /** 입장 방식(예약 · 웨이팅 등). 확인 전엔 UNKNOWN. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var reservationType: ReservationType = ReservationType.UNKNOWN,
     /** 예약 페이지 URL. */
+    @Column(length = 2000)
     var reservationUrl: String? = null,
     /** 예약 오픈 시각(타임존 포함). */
     var reservationOpenAt: OffsetDateTime? = null,

@@ -28,8 +28,8 @@ data class Popup(
     val startDate: LocalDate? = null,
     /** 운영 종료일. 종료 여부는 저장하지 않고 조회 시 end_date < today 로 계산한다. */
     val endDate: LocalDate? = null,
-    /** 요일별 운영 시간. 예: {"mon": "11:00-20:00"} */
-    val openingHours: Map<String, String>? = null,
+    /** 운영시간 · 휴무 한 줄. 예: "매일 11:00~20:00, 월 휴무" */
+    val openingHours: String? = null,
     /** 입장 방식(예약 · 웨이팅 등). 확인 전엔 UNKNOWN. */
     val reservationType: ReservationType = ReservationType.UNKNOWN,
     /** 예약 페이지 URL. */

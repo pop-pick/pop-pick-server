@@ -10,7 +10,7 @@
     "tags": { "type": ["array", "null"], "items": { "type": "string" }, "maxItems": 10 },
     "start_date": { "type": ["string", "null"] },
     "end_date": { "type": ["string", "null"] },
-    "opening_hours": { "type": ["object", "null"], "additionalProperties": { "type": "string" } },
+    "opening_hours": { "type": ["string", "null"], "description": "운영시간·휴무를 한 줄로. 예: 매일 11:00~20:00, 월 휴무" },
     "reservation_type": { "type": "string", "enum": ["NONE", "RESERVATION", "WAITING", "BOTH", "UNKNOWN"] },
     "reservation_url": { "type": ["string", "null"] },
     "reservation_open_at": { "type": ["string", "null"] },

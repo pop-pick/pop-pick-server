@@ -20,7 +20,8 @@ data class PopupEnrichment(
     val startDate: String? = null,
     /** YYYY-MM-DD */
     val endDate: String? = null,
-    val openingHours: Map<String, String>? = null,
+    /** 운영시간 · 휴무 한 줄. 예: "매일 11:00~20:00, 월 휴무" */
+    val openingHours: String? = null,
     val reservationType: ReservationType = ReservationType.UNKNOWN,
     val reservationUrl: String? = null,
     /** YYYY-MM-DDTHH:mm:ss+09:00 */

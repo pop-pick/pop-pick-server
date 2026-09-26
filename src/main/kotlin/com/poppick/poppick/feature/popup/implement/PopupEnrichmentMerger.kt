@@ -29,17 +29,6 @@ class PopupEnrichmentMerger {
 
         /** end_date 가 12-31 이면서 기간이 이보다 길면 "연말까지" 류 플레이스홀더로 보고 버린다. */
         private const val YEAR_END_SUSPECT_DAYS = 90
-        private val DAYS = listOf("mon", "tue", "wed", "thu", "fri", "sat", "sun")
-        private val FULL_DAY_NAMES =
-            mapOf(
-                "monday" to "mon",
-                "tuesday" to "tue",
-                "wednesday" to "wed",
-                "thursday" to "thu",
-                "friday" to "fri",
-                "saturday" to "sat",
-                "sunday" to "sun",
-            )
     }
 
     fun merge(
@@ -72,7 +61,7 @@ class PopupEnrichmentMerger {
                 interestCategoryId = interestCategoryId,
                 startDate = startDate,
                 endDate = endDate,
-                openingHours = normalizeOpeningHours(enrichment.openingHours) ?: popup.openingHours,
+                openingHours = enrichment.openingHours.nonBlank() ?: popup.openingHours,
                 reservationType = enrichment.reservationType.takeIf { it != ReservationType.UNKNOWN } ?: popup.reservationType,
                 reservationUrl =
                     verifiedReservationUrl(popup.id, enrichment.reservationUrl, result.searchResultUrls) ?: popup.reservationUrl,
@@ -132,19 +121,6 @@ class PopupEnrichmentMerger {
         endDate.monthValue == 12 &&
         endDate.dayOfMonth == 31 &&
         ChronoUnit.DAYS.between(startDate, endDate) > YEAR_END_SUSPECT_DAYS
-
-    // 키를 mon~sun 으로 정규화하고 그 외 키는 버린다. 남는 게 없으면 NULL.
-    private fun normalizeOpeningHours(openingHours: Map<String, String>?): Map<String, String>? {
-        val normalized =
-            openingHours
-                .orEmpty()
-                .mapNotNull { (key, value) ->
-                    val day = key.trim().lowercase().let { FULL_DAY_NAMES[it] ?: it }
-                    val hours = value.nonBlank()
-                    if (day in DAYS && hours != null) day to hours else null
-                }.toMap()
-        return DAYS.filter { it in normalized }.associateWith { normalized.getValue(it) }.takeIf { it.isNotEmpty() }
-    }
 
     // 모델이 지어낸 URL 을 막기 위해 검색 결과에 정확히 있거나 같은 host 의 URL 이 있을 때만 채택한다.
     private fun verifiedReservationUrl(
