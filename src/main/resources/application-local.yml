@@ -36,13 +36,13 @@ perplexity:
   api-key: ${PERPLEXITY_API_KEY}
   base-url: https://api.perplexity.ai
   # json_schema + web_search 조합이 동작하는 모델만 쓴다(anthropic 계열 금지).
-  model: openai/gpt-5.6-terra
+  model: openai/gpt-6-luna
   read-timeout-seconds: 120
   requests-per-second: 1.0
 
 collection:
   # Asia/Seoul 기준
-  cron: "0 3 2 * * *"
+  cron: "0 57 13 * * *"
   enrich-limit: 200
   # 총 시도 횟수(최초 1회 + 재보강 1회)
   enrich-retry-limit: 2
