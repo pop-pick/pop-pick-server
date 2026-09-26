@@ -2,7 +2,7 @@ spring:
   config:
     activate:
       on-profile: local
-    import: aws-secretsmanager:local/poppick
+    import: optional:file:.env[.properties]
 
   datasource:
     hikari:

@@ -2,7 +2,7 @@
 set -e
 
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a; . ./.env; set +a
 fi
 
 COMPOSE_FILE=$ROOT_DIR/docker-compose.prod.yml
