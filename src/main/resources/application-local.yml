@@ -42,7 +42,7 @@ perplexity:
 
 collection:
   # Asia/Seoul 기준
-  cron: "0 57 13 * * *"
+  cron: "0 0 5 * * *"
   enrich-limit: 200
   # 총 시도 횟수(최초 1회 + 재보강 1회)
   enrich-retry-limit: 2
