@@ -3,7 +3,7 @@ package com.poppick.poppick.config.properties
 import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.Duration
 
-/** 팝업 수집 배치(collect → enrich) 설정. 값은 전부 yml 의 collection.* 에서 받는다. */
+/** 팝업 수집 배치(collect → enrich → embed) 설정. 값은 전부 yml 의 collection.* 에서 받는다. */
 @ConfigurationProperties("collection")
 data class CollectionProperties(
     /** 실행 주기(Asia/Seoul 기준 cron). 스케줄러는 @Scheduled 의 플레이스홀더로 같은 키를 읽는다. */
@@ -16,6 +16,7 @@ data class CollectionProperties(
     val enrichRetryInterval: Duration,
     val collectTimeout: Duration,
     val enrichTimeout: Duration,
+    val embedTimeout: Duration,
     val kakao: Pool,
     val perplexity: Pool,
 ) {
