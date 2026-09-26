@@ -9,7 +9,6 @@ mockk = "1.13.17"
 jjwt = "0.12.6"
 querydsl = "7.0"
 springDoc = "3.0.2"
-awsSecretManager = "4.0.0"
 kotlinLogging = "8.0.4"
 
 [libraries]
@@ -40,9 +39,6 @@ micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-p
 
 # Api Docs
 springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDoc" }
-
-# AWS
-aws-secret-manager = { module = "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager", version.ref = "awsSecretManager"}
 
 # Log
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlinLogging" }

@@ -2,8 +2,12 @@ spring:
   config:
     activate:
       on-profile: prod
-    import: aws-secretsmanager:prod/poppick
-
+  datasource:
+    hikari:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST}
