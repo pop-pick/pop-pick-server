@@ -7,3 +7,8 @@ ALTER TABLE popup
   ALTER COLUMN brand           TYPE varchar(500),
   ALTER COLUMN reservation_url TYPE varchar(2000);
 ALTER TABLE popup ALTER COLUMN opening_hours TYPE text USING opening_hours::text;
+-- 배열 원소도 varchar(255) 라 긴 URL 이 value too long 을 냈다.
+ALTER TABLE popup
+  ALTER COLUMN source_urls TYPE text[],
+  ALTER COLUMN tags        TYPE text[],
+  ALTER COLUMN image_urls  TYPE text[];

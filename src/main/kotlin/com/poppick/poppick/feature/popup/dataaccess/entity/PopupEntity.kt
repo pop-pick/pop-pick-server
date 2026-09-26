@@ -29,6 +29,7 @@ class PopupEntity(
     var externalId: String? = null,
     /** 정보 근거 URL 목록. 병합 시 합집합으로 누적. */
     @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(columnDefinition = "text[]")
     var sourceUrls: List<String>? = null,
     /** 마지막으로 받은 원천 응답 원문(JSON). 재가공 · 디버깅용. */
     @JdbcTypeCode(SqlTypes.JSON)
@@ -46,9 +47,11 @@ class PopupEntity(
     var description: String? = null,
     /** 세부 키워드 목록. */
     @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(columnDefinition = "text[]")
     var tags: List<String>? = null,
     /** 대표 이미지 URL 목록. */
     @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(columnDefinition = "text[]")
     var imageUrls: List<String>? = null,
     /** 운영 시작일. */
     var startDate: LocalDate? = null,
