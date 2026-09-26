@@ -55,11 +55,16 @@ data class CollectionReport(
         val ended: Int,
         /** 그 외(핵심 필드가 하나라도 빔). */
         val incomplete: Int,
+        /** 응답을 받은 요청의 비용 합계(USD, 실패 건 포함). */
+        val costUsd: Double,
+        /** 웹 검색 호출 횟수 합계. */
+        val searchCalls: Int,
         val timedOut: Boolean,
         val elapsed: Duration,
     ) {
         fun summary() =
             "enrich: targets=$targets enriched=$enriched notFound=$notFound failed=$failed skipped=$skipped " +
-                "active=$active ended=$ended incomplete=$incomplete${if (timedOut) " TIMED_OUT" else ""} in ${elapsed.toSecondsText()}"
+                "active=$active ended=$ended incomplete=$incomplete cost=$${"%.2f".format(costUsd)} searches=$searchCalls" +
+                "${if (timedOut) " TIMED_OUT" else ""} in ${elapsed.toSecondsText()}"
     }
 }

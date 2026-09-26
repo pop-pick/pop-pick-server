@@ -29,6 +29,9 @@ class PopupEnrichmentMerger {
 
         /** end_date 가 12-31 이면서 기간이 이보다 길면 "연말까지" 류 플레이스홀더로 보고 버린다. */
         private const val YEAR_END_SUSPECT_DAYS = 90
+
+        /** 기간이 이보다 길면 WARN 만 남긴다(뉴발란스 5/9~11/14 처럼 사실인 경우가 있어 값은 유지). */
+        private const val LONG_PERIOD_SUSPECT_DAYS = 180
     }
 
     fun merge(
@@ -79,6 +82,7 @@ class PopupEnrichmentMerger {
      * 2. 새 종료일이 12-31 플레이스홀더면 버린다.
      * 3. 비어 있는 값은 기존 값으로 채운다. 섞은 결과가 역전되면 새 응답 값만 쓴다.
      * 4. 기존 값에서 온 12-31 플레이스홀더(이전 실행에서 저장된 값)도 버린다.
+     * 5. 남은 기간이 180일을 넘으면 WARN 만 남긴다.
      */
     private fun mergePeriod(
         popup: Popup,
@@ -110,6 +114,11 @@ class PopupEnrichmentMerger {
         }
 
         if (placeholder != null) log.warn { "enrich: end_date 12-31 의심 popupId=${popup.id} start=$startDate end=$placeholder" }
+
+        // 12-31 처리 뒤에 남은 기간만 본다.
+        if (startDate != null && endDate != null && ChronoUnit.DAYS.between(startDate, endDate) > LONG_PERIOD_SUSPECT_DAYS) {
+            log.warn { "enrich: 장기 기간 의심 popupId=${popup.id} start=$startDate end=$endDate" }
+        }
         return startDate to endDate
     }
 

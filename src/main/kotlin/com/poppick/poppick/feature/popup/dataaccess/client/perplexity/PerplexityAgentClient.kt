@@ -3,6 +3,7 @@ package com.poppick.poppick.feature.popup.dataaccess.client.perplexity
 import com.poppick.poppick.config.properties.PerplexityProperties
 import com.poppick.poppick.feature.popup.dataaccess.client.snakeCase
 import com.poppick.poppick.feature.popup.domain.PerplexityEnrichResult
+import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 import com.poppick.poppick.feature.popup.domain.PopupEnrichment
 import com.poppick.poppick.feature.popup.domain.SearchRecency
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -19,6 +20,7 @@ import org.springframework.web.client.body
 import tools.jackson.core.JacksonException
 import tools.jackson.core.type.TypeReference
 import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.node.ObjectNode
 import java.net.http.HttpClient
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Duration
@@ -37,6 +39,7 @@ class PerplexityAgentClient(
         private const val SCHEMA_NAME = "popup_enrichment"
         private const val INSTRUCTIONS_PATH = "prompts/popup-enrich-instructions.txt"
         private const val SCHEMA_PATH = "prompts/popup-enrich-schema.json"
+        private const val MATCHES_PLACE = "matches_place"
 
         /** 429 · 5xx · 타임아웃 재시도 간격(Retry-After 가 있으면 그 값). 길이 = 최대 재시도 횟수. */
         private val BACKOFF = listOf(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4))
@@ -75,17 +78,22 @@ class PerplexityAgentClient(
             )
 
         val response = parseResponse(postWithRetry(mapper.writeValueAsBytes(request)))
-        val cost = response.usage?.cost?.totalCost
-        log.debug { "perplexity cost=$cost" }
+        val usage = response.toUsage()
 
-        val enrichment = parseEnrichment(response.outputText())
+        // 잘린 응답은 JSON 이 불완전하므로 파싱하지 않고 실패로 보낸다(사유는 호출 측이 popupId 와 함께 WARN).
+        if (response.isIncomplete()) {
+            val reason = response.incompleteDetails?.reason
+            throw PerplexityClientException("Perplexity 응답 잘림 reason=$reason", usage = usage, incompleteReason = reason ?: "unknown")
+        }
+
+        val enrichment = parseEnrichment(response.outputText(), usage)
         val searchResultUrls = response.searchResultUrls()
         log.debug { "perplexity reservation_url=${enrichment.reservationUrl} searchResultUrls=${searchResultUrls.size}" }
 
         return PerplexityEnrichResult(
             enrichment = enrichment,
             searchResultUrls = searchResultUrls,
-            cost = cost,
+            usage = usage,
         )
     }
 
@@ -143,19 +151,28 @@ class PerplexityAgentClient(
             throw PerplexityClientException("Perplexity 응답 파싱 실패", e)
         }
 
-    private fun parseEnrichment(text: String): PopupEnrichment {
+    /**
+     * output_text 를 PopupEnrichment 로 읽는다.
+     * matches_place 는 스키마 required 라 항상 오지만, 빠지거나 null 이면 true 로 읽는다(누락만으로 정보를 버리지 않게).
+     */
+    private fun parseEnrichment(
+        text: String,
+        usage: PerplexityUsage,
+    ): PopupEnrichment {
         val json =
             text
                 .trim()
                 .removeSurrounding("```json", "```")
                 .removeSurrounding("```", "```")
                 .trim()
-        if (json.isEmpty()) throw PerplexityClientException("Perplexity output_text 가 비었습니다.")
+        if (json.isEmpty()) throw PerplexityClientException("Perplexity output_text 가 비었습니다.", usage = usage)
 
         return try {
-            mapper.readValue(json, PopupEnrichment::class.java)
+            val node = mapper.readTree(json)
+            if (node is ObjectNode && !node.hasNonNull(MATCHES_PLACE)) node.put(MATCHES_PLACE, true)
+            mapper.treeToValue(node, PopupEnrichment::class.java)
         } catch (e: JacksonException) {
-            throw PerplexityClientException("Perplexity output_text JSON 파싱 실패: ${json.take(200)}", e)
+            throw PerplexityClientException("Perplexity output_text JSON 파싱 실패: ${json.take(200)}", e, usage = usage)
         }
     }
 }

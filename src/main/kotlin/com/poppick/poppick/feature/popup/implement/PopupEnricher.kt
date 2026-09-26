@@ -6,6 +6,7 @@ import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.Perplexity
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityClientException
 import com.poppick.poppick.feature.popup.domain.CollectionReport
 import com.poppick.poppick.feature.popup.domain.EnrichmentPrompt
+import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.SearchRecency
 import com.poppick.poppick.global.util.KST
@@ -20,6 +21,7 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.DoubleAdder
 
 private val log = KotlinLogging.logger { }
 
@@ -59,6 +61,8 @@ class PopupEnricher(
         // 동시 실행 수만큼만 제출해 두고, 제출 직전마다 4xx 연속 횟수를 검사한다(실행 중 태스크는 그대로 끝낸다).
         val inFlight = Semaphore(collectionProperties.perplexity.threads)
         val consecutiveClientErrors = AtomicInteger()
+        // 응답이 온 건은 성공 · 실패(잘림 · 파싱 실패 · 저장 실패) 무관하게 비용을 합산한다.
+        val usageTally = UsageTally()
         val futures = mutableListOf<CompletableFuture<Result<EnrichOutcome>>>()
         var submitTimedOut = false
         for (id in targetIds) {
@@ -75,9 +79,11 @@ class PopupEnricher(
             futures +=
                 submit(executor) {
                     try {
-                        enrichOne(id, today, categories).also { consecutiveClientErrors.set(0) }
+                        enrichOne(id, today, categories) { usageTally.add(id, it) }.also { consecutiveClientErrors.set(0) }
                     } catch (e: PerplexityClientException) {
                         if (e.isClientError) consecutiveClientErrors.incrementAndGet()
+                        e.usage?.let { usageTally.add(id, it) }
+                        e.incompleteReason?.let { log.warn { "enrich: 응답 잘림 popupId=$id reason=$it" } }
                         throw e
                     } finally {
                         inFlight.release()
@@ -104,6 +110,8 @@ class PopupEnricher(
                 active = (saved - ended.toSet()).count { it.hasCoreFields() },
                 ended = ended.size,
                 incomplete = (saved - ended.toSet()).count { !it.hasCoreFields() },
+                costUsd = usageTally.costUsd(),
+                searchCalls = usageTally.searchCalls(),
                 timedOut = timedOut || submitTimedOut,
                 elapsed = Duration.ofNanos(System.nanoTime() - startedAt),
             ).also { log.info { it.summary() } }
@@ -117,15 +125,42 @@ class PopupEnricher(
         val found: Boolean,
     )
 
-    /** 팝업 1건 보강. 호출 · 파싱 실패 시 예외가 나며 DB 는 건드리지 않는다. */
+    /** 태스크 스레드들이 보고한 사용량 합계. */
+    private class UsageTally {
+        private val cost = DoubleAdder()
+        private val searches = AtomicInteger()
+
+        fun add(
+            popupId: Long,
+            usage: PerplexityUsage,
+        ) {
+            cost.add(usage.costUsd)
+            searches.addAndGet(usage.searchCalls)
+            log.debug {
+                "enrich: popupId=$popupId cost=$${"%.4f".format(usage.costUsd)} " +
+                    "tokens=${usage.inputTokens}/${usage.outputTokens} searches=${usage.searchCalls}"
+            }
+        }
+
+        fun costUsd() = cost.sum()
+
+        fun searchCalls() = searches.get()
+    }
+
+    /**
+     * 팝업 1건 보강. 호출 · 파싱 실패 시 예외가 나며 DB 는 건드리지 않는다.
+     * onUsage 는 응답을 받은 직후(병합 · 저장 전) 호출된다.
+     */
     fun enrichOne(
         popupId: Long,
         today: LocalDate,
         categories: Map<String, Int>,
+        onUsage: (PerplexityUsage) -> Unit = {},
     ): EnrichOutcome {
         rateLimiter.acquire()
         val popup = popupReader.findById(popupId)
         val result = perplexityAgentClient.enrich(EnrichmentPrompt.build(popup, today), SearchRecency.of(popup))
+        onUsage(result.usage)
         val merged = popupEnrichmentMerger.merge(popup, result, categories, OffsetDateTime.now(KST))
         return EnrichOutcome(popupWriter.save(merged), result.enrichment.describesPlace())
     }
