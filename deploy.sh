@@ -5,6 +5,8 @@ if [ -f .env ]; then
     set -a; . ./.env; set +a
 fi
 
+[ -f .env.prod ] && chmod 600 .env.prod
+
 COMPOSE_FILE=$ROOT_DIR/docker-compose.prod.yml
 CURRENT_COLOR_FILE=$ROOT_DIR/current_color
 
@@ -45,12 +47,13 @@ if ! docker exec spring_$NEW_COLOR curl -f http://localhost:8080/actuator/health
 fi
 
 # 4) nginx upstream을 새 색으로 스위칭
-if [ "$NEW_COLOR" = "blue" ]; then
-  sed -i 's/server spring_green:8080;/# server spring_green:8080;/' $NGINX_CONF
-  sed -i 's/# server spring_blue:8080;/server spring_blue:8080;/' $NGINX_CONF
-else
-  sed -i 's/server spring_blue:8080;/# server spring_blue:8080;/' $NGINX_CONF
-  sed -i 's/# server spring_green:8080;/server spring_green:8080;/' $NGINX_CONF
+# 주석 유무·공백에 관계없이 매칭되도록 정규식 사용
+sed -i -E "s/^([[:space:]]*)#?[[:space:]]*server spring_${CURRENT_COLOR}:8080;/\1# server spring_${CURRENT_COLOR}:8080;/" $NGINX_CONF
+sed -i -E "s/^([[:space:]]*)#?[[:space:]]*server spring_${NEW_COLOR}:8080;/\1server spring_${NEW_COLOR}:8080;/" $NGINX_CONF
+
+if ! grep -qE "^[[:space:]]*server spring_${NEW_COLOR}:8080;" $NGINX_CONF; then
+  echo "nginx conf 에 'server spring_${NEW_COLOR}:8080;' 라인이 없습니다: $NGINX_CONF"
+  exit 1
 fi
 
 docker compose -f $COMPOSE_FILE exec nginx nginx -t
