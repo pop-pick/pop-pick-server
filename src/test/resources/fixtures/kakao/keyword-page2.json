@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "is_end": true,
+    "pageable_count": 3,
+    "total_count": 3,
+    "same_name": null
+  },
+  "documents": [
+    {
+      "id": "1003",
+      "place_name": "도로명만 있는 팝업",
+      "category_name": "문화,예술 > 전시",
+      "category_group_code": "CT1",
+      "category_group_name": "",
+      "phone": "",
+      "address_name": "",
+      "road_address_name": "서울 성동구 아차산로 1",
+      "x": "127.05",
+      "y": "37.54",
+      "place_url": "http://place.map.kakao.com/1003",
+      "distance": ""
+    }
+  ]
+}

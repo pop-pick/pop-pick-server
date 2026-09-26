@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "found": { "type": "boolean" },
+    "matches_place": { "type": "boolean" },
+    "title": { "type": ["string", "null"] },
+    "brand": { "type": ["string", "null"] },
+    "interest_category": { "type": ["string", "null"], "enum": ["캐릭터/IP", "패션/브랜드", "F&B", "전시/아트", "뷰티", "게임/엔터", "라이프스타일", "기타", null] },
+    "description": { "type": ["string", "null"] },
+    "tags": { "type": ["array", "null"], "items": { "type": "string" }, "maxItems": 10, "description": "팝업 성격을 나타내는 명사형 키워드 3~6개(브랜드명 · IP명 · 상품군 · 체험 유형). 장소명 · 날짜 · 시간 · 문장 금지." },
+    "start_date": { "type": ["string", "null"] },
+    "end_date": { "type": ["string", "null"] },
+    "opening_hours": { "type": ["string", "null"], "description": "운영시간·휴무를 한 줄로. 예: 매일 11:00~20:00, 월 휴무" },
+    "reservation_type": { "type": "string", "enum": ["NONE", "RESERVATION", "WAITING", "BOTH", "UNKNOWN"] },
+    "reservation_url": { "type": ["string", "null"] },
+    "reservation_open_at": { "type": ["string", "null"] },
+    "entry_fee": { "type": ["integer", "null"], "description": "입장료(원). 무료가 확인되면 0, 유료면 원 단위 숫자, 확인 안 되면 null." }
+  },
+  "required": ["found", "matches_place", "reservation_type"]
+}

@@ -1,0 +1,76 @@
+{
+  "id": "resp_01",
+  "object": "response",
+  "created_at": 1790000000,
+  "model": "openai/gpt-6-luna",
+  "status": "completed",
+  "output": [
+    {
+      "type": "search_results",
+      "queries": [
+        "성수 캐릭터 팝업"
+      ],
+      "results": [
+        {
+          "id": 1,
+          "url": "https://www.instagram.com/p/abc",
+          "title": "망그러진 곰 팝업",
+          "date": "2026-09-01",
+          "snippet": "..."
+        },
+        {
+          "id": 2,
+          "url": "https://blog.naver.com/popup/1",
+          "title": "성수 팝업 후기",
+          "date": "2026-09-12",
+          "snippet": "..."
+        }
+      ]
+    },
+    {
+      "type": "search_results",
+      "queries": [
+        "망그러진 곰 팝업 예약"
+      ],
+      "results": [
+        {
+          "id": 3,
+          "url": "https://booking.naver.com/booking/6/bizes/123",
+          "title": "네이버 예약",
+          "snippet": "..."
+        },
+        {
+          "id": 4,
+          "url": "https://blog.naver.com/popup/1",
+          "title": "성수 팝업 후기",
+          "snippet": "..."
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "id": "msg_01",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "죄송하지만 해당 장소의 팝업스토어 정보를 찾을 수 없습니다.",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 1200,
+    "output_tokens": 300,
+    "total_tokens": 1500,
+    "cost": {
+      "currency": "USD",
+      "input_cost": 0.001,
+      "output_cost": 0.002,
+      "tool_calls_cost": 0.01,
+      "total_cost": 0.013
+    }
+  }
+}

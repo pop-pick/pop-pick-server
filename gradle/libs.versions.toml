@@ -21,6 +21,8 @@ jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" 
 postgresql = { module = "org.postgresql:postgresql" }
 h2 = { module = "com.h2database:h2" }
 mysql-connector-j = { module = "com.mysql:mysql-connector-j" }
+# 버전은 Spring Boot 가 관리하는 hibernate-core 와 동일하게 BOM 으로 맞춘다
+hibernate-vector = { module = "org.hibernate.orm:hibernate-vector" }
 
 # QueryDSL
 querydsl-core = { module = "io.github.openfeign.querydsl:querydsl-core", version.ref = "querydsl" }

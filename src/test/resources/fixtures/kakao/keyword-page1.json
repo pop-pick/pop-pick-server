@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "is_end": false,
+    "pageable_count": 3,
+    "total_count": 3,
+    "same_name": {
+      "keyword": "성수동 팝업스토어",
+      "region": [],
+      "selected_region": ""
+    }
+  },
+  "documents": [
+    {
+      "id": "1001",
+      "place_name": "성수 캐릭터 팝업",
+      "category_name": "가정,생활 > 팝업스토어",
+      "category_group_code": "",
+      "category_group_name": "",
+      "phone": "",
+      "address_name": "서울 성동구 성수동2가 322-1",
+      "road_address_name": "서울 성동구 연무장길 10",
+      "x": "127.0567",
+      "y": "37.5432",
+      "place_url": "http://place.map.kakao.com/1001",
+      "distance": ""
+    },
+    {
+      "id": "1002",
+      "place_name": "하남 팝업",
+      "category_name": "가정,생활 > 팝업스토어",
+      "category_group_code": "",
+      "category_group_name": "",
+      "phone": "",
+      "address_name": "경기 하남시 신장동 1",
+      "road_address_name": "경기 하남시 미사대로 1",
+      "x": "127.2",
+      "y": "37.54",
+      "place_url": "http://place.map.kakao.com/1002",
+      "distance": ""
+    }
+  ]
+}
