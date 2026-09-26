@@ -25,7 +25,7 @@ class PopupEmbeddingEntity(
     @Column(nullable = false)
     var model: String,
     /** 실제로 임베딩한 원문 문자열. */
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
     var contentText: String,
     /** contentText 의 SHA-256 hex. 내용이 바뀌었을 때만 재임베딩하는 판단 기준. */
     @Column(nullable = false)
