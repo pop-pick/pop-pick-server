@@ -55,7 +55,7 @@
       "content": [
         {
           "type": "output_text",
-          "text": "{\"found\": true, \"matches_place\": true, \"title\": \"망그러진 곰 팝업스토어\", \"brand\": \"망그러진 곰\", \"interest_category\": \"캐릭터/IP\", \"description\": \"망그러진 곰의 첫 오프라인 팝업스토어.\", \"tags\": [\"캐릭터\", \"굿즈\"], \"start_date\": \"2026-09-10\", \"end_date\": \"2026-10-12\", \"opening_hours\": \"매일 11:00~20:00, 월 휴무\", \"reservation_type\": \"BOTH\", \"reservation_url\": \"https://booking.naver.com/booking/6/bizes/999\", \"reservation_open_at\": \"2026-09-01T10:00:00+09:00\", \"entry_fee\": 0}",
+          "text": "{\"found\": true, \"matches_place\": null, \"title\": \"망그러진 곰 팝업스토어\", \"brand\": \"망그러진 곰\", \"interest_category\": \"캐릭터/IP\", \"description\": \"망그러진 곰의 첫 오프라인 팝업스토어.\", \"tags\": [\"캐릭터\", \"굿즈\"], \"start_date\": \"2026-09-10\", \"end_date\": \"2026-10-12\", \"opening_hours\": \"매일 11:00~20:00, 월 휴무\", \"reservation_type\": \"BOTH\", \"reservation_url\": \"https://booking.naver.com/booking/6/bizes/999\", \"reservation_open_at\": \"2026-09-01T10:00:00+09:00\", \"entry_fee\": 0}",
           "annotations": []
         }
       ]

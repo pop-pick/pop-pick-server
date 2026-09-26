@@ -3,7 +3,7 @@
   "object": "response",
   "created_at": 1790000000,
   "model": "openai/gpt-6-luna",
-  "status": "completed",
+  "status": "incomplete",
   "output": [
     {
       "type": "search_results",
@@ -55,27 +55,27 @@
       "content": [
         {
           "type": "output_text",
-          "text": "{\"found\": true, \"matches_place\": true, \"title\": \"망그러진 곰 팝업스토어\", \"brand\": \"망그러진 곰\", \"interest_category\": \"캐릭터/IP\", \"description\": \"망그러진 곰의 첫 오프라인 팝업스토어.\", \"tags\": [\"캐릭터\", \"굿즈\"], \"start_date\": \"2026-09-10\", \"end_date\": \"2026-10-12\", \"opening_hours\": \"매일 11:00~20:00, 월 휴무\", \"reservation_type\": \"BOTH\", \"reservation_url\": \"https://booking.naver.com/booking/6/bizes/999\", \"reservation_open_at\": \"2026-09-01T10:00:00+09:00\", \"entry_fee\": 0}",
+          "text": "{\"found\": true, \"matches_place\": true, \"title\": \"망그러진 곰 팝업스토어\", \"description\": \"첫 오프라",
           "annotations": []
         }
       ]
     }
   ],
   "usage": {
-    "input_tokens": 1200,
-    "output_tokens": 300,
-    "total_tokens": 1500,
+    "input_tokens": 1300,
+    "output_tokens": 1500,
+    "total_tokens": 2800,
     "cost": {
       "currency": "USD",
-      "input_cost": 0.001,
-      "output_cost": 0.002,
-      "tool_calls_cost": 0.01,
-      "total_cost": 0.013
+      "total_cost": 0.02
     },
     "tool_calls_details": {
       "search_web": {
-        "invocation": 2
+        "invocation": 3
       }
     }
+  },
+  "incomplete_details": {
+    "reason": "max_output_tokens"
   }
 }

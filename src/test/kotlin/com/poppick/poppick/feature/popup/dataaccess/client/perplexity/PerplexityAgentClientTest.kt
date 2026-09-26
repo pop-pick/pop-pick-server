@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.dataaccess.client.perplexity
 
 import com.poppick.poppick.feature.popup.Fixtures
+import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 import com.poppick.poppick.feature.popup.domain.ReservationType
 import com.poppick.poppick.feature.popup.domain.SearchRecency
 import io.kotest.assertions.throwables.shouldThrow
@@ -47,10 +48,7 @@ class PerplexityAgentClientTest :
             val client =
                 PerplexityAgentClient(
                     jsonMapper = Fixtures.jsonMapper,
-                    apiKey = "test-pplx-key",
-                    baseUrl = "https://api.perplexity.ai",
-                    model = "openai/gpt-6-luna",
-                    readTimeoutSeconds = 120,
+                    properties = Fixtures.perplexityProperties(),
                 )
             client.restClient = builder.build()
             val sleeps = mutableListOf<Duration>()
@@ -68,8 +66,8 @@ class PerplexityAgentClientTest :
                 .andExpect(jsonPath("$.input").value("입력"))
                 .andExpect(jsonPath("$.tools[0].type").value("web_search"))
                 .andExpect(jsonPath("$.tools[0].search_context_size").value("medium"))
-                .andExpect(jsonPath("$.tools[0].max_results").value(10))
-                .andExpect(jsonPath("$.tools[0].filters.search_recency_filter").value("month"))
+                .andExpect(jsonPath("$.tools[0].max_results").value(20))
+                .andExpect(jsonPath("$.tools[0].filters.search_recency_filter").value("year"))
                 .andExpect(jsonPath("$.tools[0].filters.search_domain_filter[0]").value("-popupkorea.co.kr"))
                 .andExpect(jsonPath("$.tools[0].user_location.country").value("KR"))
                 .andExpect(jsonPath("$.response_format.type").value("json_schema"))
@@ -77,13 +75,13 @@ class PerplexityAgentClientTest :
                 .andExpect(jsonPath("$.response_format.json_schema.schema.required[1]").value("matches_place"))
                 .andExpect(jsonPath("$.response_format.json_schema.schema.properties.matches_place.type").value("boolean"))
                 .andExpect(jsonPath("$.response_format.json_schema.schema.properties.is_popup").doesNotExist())
-                .andExpect(
-                    jsonPath("$.response_format.json_schema.schema.properties.opening_hours.additionalProperties.type").value("string"),
-                ).andExpect(jsonPath("$.max_output_tokens").value(1500))
+                .andExpect(jsonPath("$.response_format.json_schema.schema.properties.opening_hours.type[0]").value("string"))
+                .andExpect(jsonPath("$.response_format.json_schema.schema.properties.opening_hours.type[1]").value("null"))
+                .andExpect(jsonPath("$.max_output_tokens").value(1500))
                 .andExpect(jsonPath("$.temperature").doesNotExist())
                 .andRespond(withSuccess(success, MediaType.APPLICATION_JSON))
 
-            val result = setup.client.enrich("입력", SearchRecency.MONTH)
+            val result = setup.client.enrich("입력", SearchRecency.YEAR)
 
             setup.server.verify()
             with(result.enrichment) {
@@ -92,7 +90,7 @@ class PerplexityAgentClientTest :
                 title shouldBe "망그러진 곰 팝업스토어"
                 interestCategory shouldBe "캐릭터/IP"
                 startDate shouldBe "2026-09-10"
-                openingHours shouldBe mapOf("mon" to "11:00-20:00", "Tuesday" to "11:00-20:00")
+                openingHours shouldBe "매일 11:00~20:00, 월 휴무"
                 reservationType shouldBe ReservationType.BOTH
                 entryFee shouldBe 0
             }
@@ -102,19 +100,49 @@ class PerplexityAgentClientTest :
                     "https://blog.naver.com/popup/1",
                     "https://booking.naver.com/booking/6/bizes/123",
                 )
-            result.cost shouldBe 0.013
+            result.usage shouldBe PerplexityUsage(costUsd = 0.013, inputTokens = 1200, outputTokens = 300, searchCalls = 2)
         }
 
-        test("재시도 건은 search_recency_filter 를 year 로 보낸다") {
+        test("재시도 건(NONE)은 search_recency_filter 키 자체를 보내지 않는다") {
             val setup = setUp()
             setup
                 .expectRequest()
-                .andExpect(jsonPath("$.tools[0].filters.search_recency_filter").value("year"))
+                .andExpect(jsonPath("$.tools[0].filters.search_recency_filter").doesNotExist())
+                .andExpect(jsonPath("$.tools[0].filters.search_domain_filter[0]").value("-popupkorea.co.kr"))
                 .andRespond(withSuccess(success, MediaType.APPLICATION_JSON))
 
-            setup.client.enrich("입력", SearchRecency.YEAR)
+            setup.client.enrich("입력", SearchRecency.NONE)
 
             setup.server.verify()
+        }
+
+        test("usage 가 없으면 비용 · 검색 횟수 0, 토큰 NULL") {
+            val setup = setUp()
+            setup.expectRequest().andRespond(withSuccess(Fixtures.read("perplexity/enrich-no-usage.json"), MediaType.APPLICATION_JSON))
+
+            setup.client.enrich("입력", SearchRecency.YEAR).usage shouldBe PerplexityUsage()
+        }
+
+        test("status=incomplete 응답은 파싱하지 않고 사유 · 사용량을 담아 예외") {
+            val setup = setUp()
+            setup.expectRequest().andRespond(withSuccess(Fixtures.read("perplexity/enrich-incomplete.json"), MediaType.APPLICATION_JSON))
+
+            val exception = shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.YEAR) }
+
+            exception.incompleteReason shouldBe "max_output_tokens"
+            exception.usage shouldBe PerplexityUsage(costUsd = 0.02, inputTokens = 1300, outputTokens = 1500, searchCalls = 3)
+            exception.isClientError shouldBe false
+        }
+
+        test("matches_place 가 없거나 null 이면 true 로 읽는다") {
+            listOf("perplexity/enrich-missing-matches-place.json", "perplexity/enrich-null-matches-place.json").forEach { fixture ->
+                val setup = setUp()
+                setup.expectRequest().andRespond(withSuccess(Fixtures.read(fixture), MediaType.APPLICATION_JSON))
+
+                setup.client
+                    .enrich("입력", SearchRecency.YEAR)
+                    .enrichment.matchesPlace shouldBe true
+            }
         }
 
         test("429 · 5xx 는 Retry-After 또는 지수 백오프로 재시도 후 성공한다") {
@@ -123,7 +151,7 @@ class PerplexityAgentClientTest :
             setup.expectRequest().andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE))
             setup.expectRequest().andRespond(withSuccess(success, MediaType.APPLICATION_JSON))
 
-            val result = setup.client.enrich("입력", SearchRecency.MONTH)
+            val result = setup.client.enrich("입력", SearchRecency.YEAR)
 
             setup.server.verify()
             result.enrichment.found shouldBe true
@@ -134,7 +162,7 @@ class PerplexityAgentClientTest :
             val setup = setUp()
             setup.expectRequest(ExpectedCount.times(4)).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR))
 
-            shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.MONTH) }
+            shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.YEAR) }
 
             setup.server.verify()
             setup.sleeps shouldContainExactly listOf(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4))
@@ -146,7 +174,7 @@ class PerplexityAgentClientTest :
                 .expectRequest()
                 .andRespond(withBadRequest().body("""{"error":{"message":"invalid model"}}""").contentType(MediaType.APPLICATION_JSON))
 
-            val exception = shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.MONTH) }
+            val exception = shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.YEAR) }
 
             setup.server.verify()
             setup.sleeps.shouldBeEmpty()
@@ -158,6 +186,6 @@ class PerplexityAgentClientTest :
             val setup = setUp()
             setup.expectRequest().andRespond(withSuccess(Fixtures.read("perplexity/enrich-not-json.json"), MediaType.APPLICATION_JSON))
 
-            shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.MONTH) }
+            shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.YEAR) }
         }
     })

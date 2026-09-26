@@ -60,22 +60,5 @@
         }
       ]
     }
-  ],
-  "usage": {
-    "input_tokens": 1200,
-    "output_tokens": 300,
-    "total_tokens": 1500,
-    "cost": {
-      "currency": "USD",
-      "input_cost": 0.001,
-      "output_cost": 0.002,
-      "tool_calls_cost": 0.01,
-      "total_cost": 0.013
-    },
-    "tool_calls_details": {
-      "search_web": {
-        "invocation": 2
-      }
-    }
-  }
+  ]
 }

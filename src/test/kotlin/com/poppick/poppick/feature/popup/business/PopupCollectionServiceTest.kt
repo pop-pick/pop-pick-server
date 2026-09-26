@@ -7,6 +7,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldStartWith
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -24,9 +25,16 @@ class PopupCollectionServiceTest :
                 active = 1,
                 ended = 0,
                 incomplete = 0,
+                costUsd = 0.01,
+                searchCalls = 2,
                 timedOut = false,
                 elapsed = Duration.ZERO,
             )
+
+        test("enrich 요약에 비용(소수 둘째 자리) · 검색 횟수를 찍는다") {
+            enrichReport.summary() shouldStartWith
+                "enrich: targets=1 enriched=1 notFound=0 failed=0 skipped=0 active=1 ended=0 incomplete=0 cost=\$0.01 searches=2 in "
+        }
 
         test("collect 가 실패해도 enrich 는 실행된다") {
             val collector = mockk<KakaoPopupCollector>()

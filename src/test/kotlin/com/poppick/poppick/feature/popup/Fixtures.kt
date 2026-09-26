@@ -1,6 +1,8 @@
 package com.poppick.poppick.feature.popup
 
 import com.poppick.poppick.config.properties.CollectionProperties
+import com.poppick.poppick.config.properties.KakaoMapProperties
+import com.poppick.poppick.config.properties.PerplexityProperties
 import org.springframework.core.io.ClassPathResource
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
@@ -27,4 +29,21 @@ object Fixtures {
         kakao = CollectionProperties.Pool(threads = 4),
         perplexity = CollectionProperties.Pool(threads = perplexityThreads),
     )
+
+    fun kakaoMapProperties(maxPage: Int = 3) =
+        KakaoMapProperties(
+            baseUrl = "https://dapi.kakao.com",
+            seoulRect = "126.764,37.413,127.184,37.715",
+            maxPage = maxPage,
+            pageDelayMs = 0,
+        )
+
+    fun perplexityProperties() =
+        PerplexityProperties(
+            apiKey = "test-pplx-key",
+            baseUrl = "https://api.perplexity.ai",
+            model = "openai/gpt-6-luna",
+            readTimeoutSeconds = 120,
+            requestsPerSecond = 1.0,
+        )
 }

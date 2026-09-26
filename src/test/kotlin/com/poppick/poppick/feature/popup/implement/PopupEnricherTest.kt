@@ -6,10 +6,12 @@ import com.poppick.poppick.feature.popup.Fixtures
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityAgentClient
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityClientException
 import com.poppick.poppick.feature.popup.domain.PerplexityEnrichResult
+import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupEnrichment
 import com.poppick.poppick.feature.popup.domain.SourceType
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
@@ -83,6 +85,22 @@ class PopupEnricherTest :
             report.notFound shouldBe 1
             report.failed shouldBe 9
             report.skipped shouldBe 1
+        }
+
+        test("응답이 온 건의 비용 · 검색 횟수를 성공 · 실패 무관하게 합산한다") {
+            val fixture = Fixture()
+            fixture.targets(1, 2, 3)
+            val usage = PerplexityUsage(costUsd = 0.01, inputTokens = 100, outputTokens = 50, searchCalls = 2)
+            every { fixture.perplexityAgentClient.enrich(any(), any()) } returns
+                notFound.copy(usage = usage) andThenThrows
+                PerplexityClientException("응답 잘림", usage = usage.copy(costUsd = 0.02), incompleteReason = "max_output_tokens") andThenThrows
+                PerplexityClientException("Perplexity 요청 실패 status=400", statusCode = 400)
+
+            val report = fixture.enricher.enrich(today)
+
+            report.failed shouldBe 2
+            report.costUsd shouldBe (0.03 plusOrMinus 1e-9)
+            report.searchCalls shouldBe 4
         }
 
         test("4xx 가 아닌 실패(재시도 소진 · 파싱 실패)는 세지 않는다") {

@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popup.implement
 
+import com.poppick.poppick.feature.popup.LogCapture
 import com.poppick.poppick.feature.popup.domain.PerplexityEnrichResult
 import com.poppick.poppick.feature.popup.domain.PlaceResolution
 import com.poppick.poppick.feature.popup.domain.Popup
@@ -7,6 +8,7 @@ import com.poppick.poppick.feature.popup.domain.PopupEnrichment
 import com.poppick.poppick.feature.popup.domain.ReservationType
 import com.poppick.poppick.feature.popup.domain.SourceType
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import java.time.LocalDate
@@ -50,7 +52,7 @@ class PopupEnrichmentMergerTest :
                 tags = listOf("캐릭터", "굿즈"),
                 startDate = "2026-09-10",
                 endDate = "2026-10-12",
-                openingHours = mapOf("mon" to "11:00-20:00"),
+                openingHours = "매일 11:00~20:00",
                 reservationType = ReservationType.RESERVATION,
                 reservationUrl = "https://booking.naver.com/booking/6/bizes/123",
                 reservationOpenAt = "2026-09-01T10:00:00+09:00",
@@ -64,7 +66,7 @@ class PopupEnrichmentMergerTest :
             enrichment: PopupEnrichment,
             base: Popup = popup,
             urls: List<String> = searchUrls,
-        ) = merger.merge(base, PerplexityEnrichResult(enrichment, urls, 0.01), categories, now)
+        ) = merger.merge(base, PerplexityEnrichResult(enrichment, urls), categories, now)
 
         // 핵심 필드가 모두 채워진 팝업
         val complete = merge(found)
@@ -208,6 +210,35 @@ class PopupEnrichmentMergerTest :
             }
         }
 
+        context("장기 기간") {
+            fun warnings(enrichment: PopupEnrichment) =
+                LogCapture(PopupEnrichmentMerger::class.java.name).use { capture ->
+                    merge(enrichment) to capture.messages().filter { "장기 기간 의심" in it }
+                }
+
+            test("180일을 넘으면 WARN 만 남기고 값은 유지한다") {
+                val (merged, logs) = warnings(found.copy(startDate = "2026-05-09", endDate = "2026-11-25"))
+
+                merged.startDate shouldBe LocalDate.of(2026, 5, 9)
+                merged.endDate shouldBe LocalDate.of(2026, 11, 25)
+                logs shouldBe listOf("enrich: 장기 기간 의심 popupId=1 start=2026-05-09 end=2026-11-25")
+            }
+
+            test("100일이면 로그 없음") {
+                val (merged, logs) = warnings(found.copy(startDate = "2026-09-01", endDate = "2026-12-10"))
+
+                merged.endDate shouldBe LocalDate.of(2026, 12, 10)
+                logs.shouldBeEmpty()
+            }
+
+            test("12-31 로 버려진 종료일은 장기 기간 검사 대상이 아니다") {
+                val (merged, logs) = warnings(found.copy(startDate = "2026-03-01", endDate = "2026-12-31"))
+
+                merged.endDate.shouldBeNull()
+                logs.shouldBeEmpty()
+            }
+        }
+
         context("값 정규화") {
             test("title 이 비어 있으면 기존 제목을 유지한다") {
                 merge(found.copy(title = " ")).title shouldBe popup.title
@@ -228,21 +259,33 @@ class PopupEnrichmentMergerTest :
                 merged.entryFee.shouldBeNull()
             }
 
-            test("opening_hours 키를 mon~sun 소문자로 정규화하고 그 외 키는 버린다") {
-                val merged =
-                    merge(
-                        found.copy(
-                            openingHours =
-                                mapOf(
-                                    "MON" to "11:00-20:00",
-                                    "Tuesday" to "12:00-21:00",
-                                    "holiday" to "휴무",
-                                    " sun " to "10:00-19:00",
-                                ),
-                        ),
-                    )
+            test("description · title 이 길어도(300자) 자르지 않고 그대로 전달한다") {
+                val longDescription = "가".repeat(300)
+                val longTitle = "나".repeat(300)
 
-                merged.openingHours shouldBe mapOf("mon" to "11:00-20:00", "tue" to "12:00-21:00", "sun" to "10:00-19:00")
+                val merged = merge(found.copy(description = longDescription, title = longTitle))
+
+                merged.description shouldBe longDescription
+                merged.title shouldBe longTitle
+            }
+        }
+
+        context("opening_hours") {
+            test("응답의 한 줄 운영시간을 그대로 저장한다") {
+                complete.openingHours shouldBe "매일 11:00~20:00"
+            }
+
+            test("공백을 다듬어 저장한다") {
+                merge(found.copy(openingHours = "  매일 11:00~20:00, 월 휴무 ")).openingHours shouldBe "매일 11:00~20:00, 월 휴무"
+            }
+
+            test("재보강 응답이 null · 빈 문자열이면 기존 값을 유지한다") {
+                merge(empty.copy(openingHours = null), base = complete).openingHours shouldBe "매일 11:00~20:00"
+                merge(empty.copy(openingHours = " "), base = complete).openingHours shouldBe "매일 11:00~20:00"
+            }
+
+            test("새 값이 있으면 새 값을 쓴다") {
+                merge(empty.copy(openingHours = "화~일 10:30~22:00, 월 휴무"), base = complete).openingHours shouldBe "화~일 10:30~22:00, 월 휴무"
             }
         }
 
