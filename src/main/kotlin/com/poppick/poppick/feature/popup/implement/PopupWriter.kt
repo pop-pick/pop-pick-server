@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.feature.popup.dataaccess.entity.PopupEntity
+import com.poppick.poppick.feature.popup.dataaccess.repository.PopupEmbeddingRepository
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupRepository
 import com.poppick.poppick.feature.popup.domain.KakaoPlace
 import com.poppick.poppick.feature.popup.domain.PlaceResolution
@@ -12,8 +13,19 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class PopupWriter(
     private val popupRepository: PopupRepository,
+    private val popupEmbeddingRepository: PopupEmbeddingRepository,
 ) {
+    companion object {
+        /** IN 절 1회에 넣는 id 수. */
+        private const val DELETE_CHUNK_SIZE = 1000
+    }
+
     enum class UpsertResult { CREATED, UPDATED }
+
+    data class DeleteResult(
+        val popups: Int,
+        val embeddings: Int,
+    )
 
     /**
      * 카카오 장소 1건 upsert(장소 1건 = 트랜잭션 1개).
@@ -40,6 +52,21 @@ class PopupWriter(
 
     @Transactional
     fun save(popup: Popup): Popup = popupRepository.save(PopupEntity.from(popup)).toDomain()
+
+    /**
+     * 팝업과 그 임베딩을 삭제한다(호출 1회 = 트랜잭션 1개). FK 동작(CASCADE 여부)에 기대지 않고 임베딩 → 팝업 순으로 지운다.
+     * IN 절은 DELETE_CHUNK_SIZE 단위로 나눈다.
+     */
+    @Transactional
+    fun deleteAll(ids: List<Long>): DeleteResult {
+        var popups = 0
+        var embeddings = 0
+        ids.chunked(DELETE_CHUNK_SIZE).forEach { chunk ->
+            embeddings += popupEmbeddingRepository.deleteByPopupIdIn(chunk)
+            popups += popupRepository.deleteByIds(chunk)
+        }
+        return DeleteResult(popups, embeddings)
+    }
 
     private fun newPopup(place: KakaoPlace) =
         Popup(

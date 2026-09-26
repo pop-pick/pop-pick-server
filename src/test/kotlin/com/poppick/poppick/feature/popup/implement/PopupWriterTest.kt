@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.feature.popup.dataaccess.entity.PopupEntity
+import com.poppick.poppick.feature.popup.dataaccess.repository.PopupEmbeddingRepository
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupRepository
 import com.poppick.poppick.feature.popup.domain.KakaoPlace
 import com.poppick.poppick.feature.popup.domain.PlaceResolution
@@ -12,6 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import io.mockk.verifyOrder
 import java.time.LocalDate
 
 class PopupWriterTest :
@@ -34,7 +36,7 @@ class PopupWriterTest :
             every { repository.findBySourceAndExternalId(SourceType.KAKAO_MAP, "1001") } returns null
             every { repository.save(capture(saved)) } answers { firstArg() }
 
-            PopupWriter(repository).upsertFromKakao(place) shouldBe UpsertResult.CREATED
+            PopupWriter(repository, mockk()).upsertFromKakao(place) shouldBe UpsertResult.CREATED
 
             with(saved.captured) {
                 source shouldBe SourceType.KAKAO_MAP
@@ -69,7 +71,7 @@ class PopupWriterTest :
                 )
             every { repository.findBySourceAndExternalId(SourceType.KAKAO_MAP, "1001") } returns existing
 
-            PopupWriter(repository).upsertFromKakao(place) shouldBe UpsertResult.UPDATED
+            PopupWriter(repository, mockk()).upsertFromKakao(place) shouldBe UpsertResult.UPDATED
 
             verify(exactly = 0) { repository.save(any()) }
             with(existing) {
@@ -85,5 +87,23 @@ class PopupWriterTest :
                 interestCategoryId shouldBe 1
                 enrichRetryCount shouldBe 1
             }
+        }
+
+        test("deleteAll 은 청크마다 임베딩 → 팝업 순으로 지우고 건수를 합산한다") {
+            val popupRepository = mockk<PopupRepository>()
+            val embeddingRepository = mockk<PopupEmbeddingRepository>()
+            val ids = (1L..1001L).toList()
+            every { embeddingRepository.deleteByPopupIdIn(any()) } answers { firstArg<Collection<Long>>().size / 2 }
+            every { popupRepository.deleteByIds(any()) } answers { firstArg<List<Long>>().size }
+
+            val result = PopupWriter(popupRepository, embeddingRepository).deleteAll(ids)
+
+            verifyOrder {
+                embeddingRepository.deleteByPopupIdIn(ids.take(1000))
+                popupRepository.deleteByIds(ids.take(1000))
+                embeddingRepository.deleteByPopupIdIn(listOf(1001L))
+                popupRepository.deleteByIds(listOf(1001L))
+            }
+            result shouldBe PopupWriter.DeleteResult(popups = 1001, embeddings = 500)
         }
     })

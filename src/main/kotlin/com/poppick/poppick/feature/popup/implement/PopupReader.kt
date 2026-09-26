@@ -6,6 +6,7 @@ import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
+import java.time.LocalDate
 import java.time.OffsetDateTime
 
 /**
@@ -20,6 +21,10 @@ class PopupReader(
         retryBefore: OffsetDateTime,
         limit: Int,
     ): List<Long> = popupRepository.findEnrichTargets(retryLimit, retryBefore, limit).mapNotNull { it.id }
+
+    fun findEmbedTargets(today: LocalDate): List<Popup> = popupRepository.findEmbedTargets(today).map { it.toDomain() }
+
+    fun findExpiredPopupIds(today: LocalDate): List<Long> = popupRepository.findExpiredPopupIds(today)
 
     fun findById(id: Long): Popup = popupRepository.findByIdOrNull(id)?.toDomain() ?: throw AppException(ErrorType.NOT_FOUND_DATA)
 }

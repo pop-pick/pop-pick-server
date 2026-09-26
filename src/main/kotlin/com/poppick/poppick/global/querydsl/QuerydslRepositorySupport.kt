@@ -4,6 +4,7 @@ import com.poppick.poppick.global.paging.Cursorable
 import com.querydsl.core.types.EntityPath
 import com.querydsl.core.types.Expression
 import com.querydsl.core.types.dsl.PathBuilder
+import com.querydsl.jpa.impl.JPADeleteClause
 import com.querydsl.jpa.impl.JPAQuery
 import com.querydsl.jpa.impl.JPAQueryFactory
 import com.querydsl.jpa.impl.JPAUpdateClause
@@ -42,6 +43,8 @@ abstract class QuerydslRepositorySupport(
     protected fun selectOne(): JPAQuery<Int> = jpaQueryFactory.selectOne()
 
     protected fun <T : Any> update(from: EntityPath<T>): JPAUpdateClause = jpaQueryFactory.update(from)
+
+    protected fun <T : Any> delete(from: EntityPath<T>): JPADeleteClause = jpaQueryFactory.delete(from)
 
     protected fun <T> hasNext(
         cursorable: Cursorable<*>,

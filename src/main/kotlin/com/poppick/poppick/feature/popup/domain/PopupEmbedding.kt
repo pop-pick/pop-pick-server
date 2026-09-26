@@ -15,4 +15,9 @@ data class PopupEmbedding(
     val embedding: FloatArray,
     /** 임베딩 식별자(popup_embedding_id). 저장 전엔 NULL. */
     val id: Long? = null,
-)
+) {
+    companion object {
+        /** 팝업 프로필 전체(PopupProfileText)를 임베딩한 것. */
+        const val KIND_PROFILE = "PROFILE"
+    }
+}

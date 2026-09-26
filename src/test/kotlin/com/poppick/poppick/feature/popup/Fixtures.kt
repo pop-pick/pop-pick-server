@@ -2,6 +2,7 @@ package com.poppick.poppick.feature.popup
 
 import com.poppick.poppick.config.properties.CollectionProperties
 import com.poppick.poppick.config.properties.KakaoMapProperties
+import com.poppick.poppick.config.properties.OpenAiProperties
 import com.poppick.poppick.config.properties.PerplexityProperties
 import org.springframework.core.io.ClassPathResource
 import tools.jackson.databind.json.JsonMapper
@@ -18,6 +19,7 @@ object Fixtures {
         enrichRetryLimit: Int = 2,
         collectTimeout: Duration = Duration.ofMinutes(5),
         enrichTimeout: Duration = Duration.ofMinutes(30),
+        embedTimeout: Duration = Duration.ofMinutes(5),
         perplexityThreads: Int = 3,
     ) = CollectionProperties(
         cron = "0 30 5 * * *",
@@ -26,6 +28,7 @@ object Fixtures {
         enrichRetryInterval = Duration.ofDays(7),
         collectTimeout = collectTimeout,
         enrichTimeout = enrichTimeout,
+        embedTimeout = embedTimeout,
         kakao = CollectionProperties.Pool(threads = 4),
         perplexity = CollectionProperties.Pool(threads = perplexityThreads),
     )
@@ -46,4 +49,16 @@ object Fixtures {
             readTimeoutSeconds = 120,
             requestsPerSecond = 1.0,
         )
+
+    fun openAiProperties(
+        embeddingDimensions: Int = 1536,
+        batchSize: Int = 32,
+    ) = OpenAiProperties(
+        apiKey = "test-openai-key",
+        baseUrl = "https://api.openai.com",
+        embeddingModel = "text-embedding-3-small",
+        embeddingDimensions = embeddingDimensions,
+        readTimeoutSeconds = 60,
+        batchSize = batchSize,
+    )
 }
