@@ -2,15 +2,67 @@ spring:
   config:
     activate:
       on-profile: local
-    import: aws-secretsmanager:local/poppick
+    import: optional:file:.env[.properties]
+
+  datasource:
+    hikari:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        hbm2ddl:
+          auto: validate
+
 kakao:
   api-key: ${KAKAO_API_KEY}
+  map:
+    base-url: https://dapi.kakao.com
+    # 검색 영역 사각형(좌하단 경도,위도,우상단 경도,위도). 서울 전역.
+    seoul-rect: "126.764,37.413,127.184,37.715"
+    max-page: 3
+    page-delay-ms: 100
+
+perplexity:
+  api-key: ${PERPLEXITY_API_KEY}
+  base-url: https://api.perplexity.ai
+  # json_schema + web_search 조합이 동작하는 모델만 쓴다(anthropic 계열 금지).
+  model: openai/gpt-6-luna
+  read-timeout-seconds: 120
+  requests-per-second: 1.0
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: https://api.openai.com
+  embedding-model: text-embedding-3-small
+  embedding-dimensions: 1536
+  read-timeout-seconds: 60
+  # 요청 1회에 넣는 입력 수
+  batch-size: 32
+
+collection:
+  # Asia/Seoul 기준
+  cron: "0 24 21 * * *"
+  enrich-limit: 200
+  # 총 시도 횟수(최초 1회 + 재보강 1회)
+  enrich-retry-limit: 2
+  enrich-retry-interval: 7d
+  collect-timeout: 5m
+  enrich-timeout: 30m
+  embed-timeout: 5m
+  kakao:
+    threads: 4
+  perplexity:
+    threads: 3
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}

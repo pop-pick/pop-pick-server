@@ -37,6 +37,7 @@ dependencies {
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.h2)
     runtimeOnly(libs.mysql.connector.j)
+    implementation(libs.hibernate.vector)
 
     implementation(libs.querydsl.core)
     implementation(libs.querydsl.jpa)
@@ -55,9 +56,6 @@ dependencies {
     // Metric
     implementation(libs.spring.boot.starter.actuator)
     runtimeOnly(libs.micrometer.registry.prometheus)
-
-    // AWS
-    implementation(libs.aws.secret.manager)
 
     // Api Docs
     implementation(libs.springdoc.openapi)

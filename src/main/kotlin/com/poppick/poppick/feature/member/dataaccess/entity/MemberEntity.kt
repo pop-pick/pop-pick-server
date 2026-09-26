@@ -3,10 +3,12 @@ package com.poppick.poppick.feature.member.dataaccess.entity
 import com.poppick.poppick.feature.member.domain.Member
 import com.poppick.poppick.feature.member.domain.NewMember
 import com.poppick.poppick.global.entity.BaseEntity
+import com.poppick.poppick.global.entity.EntityStatus
 import com.poppick.poppick.security.enums.MemberRole
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection
+import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -30,6 +32,8 @@ class MemberEntity(
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     var roles: MutableSet<MemberRole> = mutableSetOf(MemberRole.ROLE_USER),
+    @Embedded
+    var status: EntityStatus = EntityStatus(),
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_id")

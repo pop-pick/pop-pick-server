@@ -43,8 +43,39 @@ jobs:
           docker push ${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPOSITORY }}:latest
           docker push ${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_REPOSITORY }}:${GITHUB_SHA::8}
 
+      - name: Create .env.prod
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_API_KEY: ${{ secrets.KAKAO_API_KEY }}
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        run: |
+          : > .env.prod
+          for k in DB_URL DB_USERNAME DB_PASSWORD KAKAO_API_KEY PERPLEXITY_API_KEY \
+                   OPENAI_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET JWT_SECRET_KEY; do
+            v="${!k}"
+            [ -n "$v" ] || { echo "::error::secret $k is empty"; exit 1; }
+            case "$v" in *"'"*|*$'\n'*) echo "::error::secret $k contains quote/newline"; exit 1;; esac
+            printf "%s='%s'\n" "$k" "$v" >> .env.prod
+          done
+          chmod 600 .env.prod
+
+      - name: Copy .env.prod to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: ".env.prod"
+          target: ${{ secrets.DEPLOY_DIR }}
+
       - name: Copy promtail-config to server
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -54,7 +85,7 @@ jobs:
           strip_components: 2
 
       - name: Copy docker-compose to server
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -63,7 +94,7 @@ jobs:
           target: ${{ secrets.DEPLOY_DIR }}
 
       - name: Copy deploy file to server
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -72,7 +103,7 @@ jobs:
           target: ${{ secrets.DEPLOY_DIR }}
 
       - name: Deploy to Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}

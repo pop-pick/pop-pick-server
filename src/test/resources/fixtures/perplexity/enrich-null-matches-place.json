@@ -1,0 +1,81 @@
+{
+  "id": "resp_01",
+  "object": "response",
+  "created_at": 1790000000,
+  "model": "openai/gpt-6-luna",
+  "status": "completed",
+  "output": [
+    {
+      "type": "search_results",
+      "queries": [
+        "성수 캐릭터 팝업"
+      ],
+      "results": [
+        {
+          "id": 1,
+          "url": "https://www.instagram.com/p/abc",
+          "title": "망그러진 곰 팝업",
+          "date": "2026-09-01",
+          "snippet": "..."
+        },
+        {
+          "id": 2,
+          "url": "https://blog.naver.com/popup/1",
+          "title": "성수 팝업 후기",
+          "date": "2026-09-12",
+          "snippet": "..."
+        }
+      ]
+    },
+    {
+      "type": "search_results",
+      "queries": [
+        "망그러진 곰 팝업 예약"
+      ],
+      "results": [
+        {
+          "id": 3,
+          "url": "https://booking.naver.com/booking/6/bizes/123",
+          "title": "네이버 예약",
+          "snippet": "..."
+        },
+        {
+          "id": 4,
+          "url": "https://blog.naver.com/popup/1",
+          "title": "성수 팝업 후기",
+          "snippet": "..."
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "id": "msg_01",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"found\": true, \"matches_place\": null, \"title\": \"망그러진 곰 팝업스토어\", \"brand\": \"망그러진 곰\", \"interest_category\": \"캐릭터/IP\", \"description\": \"망그러진 곰의 첫 오프라인 팝업스토어.\", \"tags\": [\"캐릭터\", \"굿즈\"], \"start_date\": \"2026-09-10\", \"end_date\": \"2026-10-12\", \"opening_hours\": \"매일 11:00~20:00, 월 휴무\", \"reservation_type\": \"BOTH\", \"reservation_url\": \"https://booking.naver.com/booking/6/bizes/999\", \"reservation_open_at\": \"2026-09-01T10:00:00+09:00\", \"entry_fee\": 0}",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 1200,
+    "output_tokens": 300,
+    "total_tokens": 1500,
+    "cost": {
+      "currency": "USD",
+      "input_cost": 0.001,
+      "output_cost": 0.002,
+      "tool_calls_cost": 0.01,
+      "total_cost": 0.013
+    },
+    "tool_calls_details": {
+      "search_web": {
+        "invocation": 2
+      }
+    }
+  }
+}

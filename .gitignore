@@ -38,3 +38,12 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+logs/
+*.log
+infra/monitoring/grafana-data/
+
+### Env ###
+.env
+.env.*
+!.env.example
