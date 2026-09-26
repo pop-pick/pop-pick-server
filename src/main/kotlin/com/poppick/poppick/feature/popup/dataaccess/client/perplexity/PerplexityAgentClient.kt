@@ -1,11 +1,11 @@
 package com.poppick.poppick.feature.popup.dataaccess.client.perplexity
 
+import com.poppick.poppick.config.properties.PerplexityProperties
 import com.poppick.poppick.feature.popup.dataaccess.client.snakeCase
 import com.poppick.poppick.feature.popup.domain.PerplexityEnrichResult
 import com.poppick.poppick.feature.popup.domain.PopupEnrichment
 import com.poppick.poppick.feature.popup.domain.SearchRecency
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -30,15 +30,7 @@ private val log = KotlinLogging.logger { }
 @Component
 class PerplexityAgentClient(
     jsonMapper: JsonMapper,
-    @Value($$"${perplexity.api-key}")
-    private val apiKey: String,
-    @Value($$"${perplexity.base-url}")
-    baseUrl: String,
-    /** json_schema + web_search 조합이 동작하는 모델만 쓴다(anthropic 계열 모델 금지). */
-    @Value($$"${perplexity.model}")
-    private val model: String,
-    @Value($$"${perplexity.read-timeout-seconds}")
-    readTimeoutSeconds: Long,
+    private val properties: PerplexityProperties,
 ) {
     companion object {
         private const val RESPONSES_PATH = "/v1/responses"
@@ -55,10 +47,10 @@ class PerplexityAgentClient(
     internal var restClient: RestClient =
         RestClient
             .builder()
-            .baseUrl(baseUrl)
+            .baseUrl(properties.baseUrl)
             .requestFactory(
                 JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build())
-                    .apply { setReadTimeout(Duration.ofSeconds(readTimeoutSeconds)) },
+                    .apply { setReadTimeout(Duration.ofSeconds(properties.readTimeoutSeconds)) },
             ).build()
 
     private val mapper = jsonMapper.snakeCase()
@@ -75,7 +67,7 @@ class PerplexityAgentClient(
     ): PerplexityEnrichResult {
         val request =
             PerplexityAgentRequest(
-                model = model,
+                model = properties.model,
                 input = input,
                 instructions = instructions,
                 tools = listOf(PerplexityAgentRequest.WebSearchTool(PerplexityAgentRequest.Filters(recency.value))),
@@ -127,7 +119,7 @@ class PerplexityAgentClient(
         restClient
             .post()
             .uri(RESPONSES_PATH)
-            .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${properties.apiKey}")
             .contentType(MediaType.APPLICATION_JSON)
             .body(body)
             .retrieve()

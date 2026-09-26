@@ -25,10 +25,7 @@ class KakaoMapClientTest :
             val client =
                 KakaoMapClient(
                     jsonMapper = Fixtures.jsonMapper,
-                    baseUrl = "https://dapi.kakao.com",
-                    seoulRect = "126.764,37.413,127.184,37.715",
-                    maxPage = maxPage,
-                    pageDelayMs = 0,
+                    properties = Fixtures.kakaoMapProperties(maxPage),
                     apiKey = "test-key",
                 )
             client.restClient = builder.build()

@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popup.dataaccess.client.kakao
 
+import com.poppick.poppick.config.properties.KakaoMapProperties
 import com.poppick.poppick.feature.popup.dataaccess.client.snakeCase
 import com.poppick.poppick.feature.popup.domain.KakaoPlace
 import org.springframework.beans.factory.annotation.Value
@@ -15,17 +16,8 @@ import java.time.Duration
 @Component
 class KakaoMapClient(
     jsonMapper: JsonMapper,
-    @Value($$"${kakao.map.base-url}")
-    baseUrl: String,
-    /** 검색 영역 사각형(좌하단 경도,위도,우상단 경도,위도). */
-    @Value($$"${kakao.map.seoul-rect}")
-    private val seoulRect: String,
-    /** 검색어 하나당 최대 페이지 수(페이지당 15건). */
-    @Value($$"${kakao.map.max-page}")
-    private val maxPage: Int,
-    /** 페이지 요청 사이 대기(ms). */
-    @Value($$"${kakao.map.page-delay-ms}")
-    private val pageDelayMs: Long,
+    private val properties: KakaoMapProperties,
+    /** 로그인(KakaoAuthenticator)과 같은 REST API 키. kakao.map.* 밖의 키라 그쪽과 같은 방식으로 받는다. */
     @Value($$"${kakao.api-key}")
     private val apiKey: String,
 ) {
@@ -40,7 +32,7 @@ class KakaoMapClient(
     internal var restClient: RestClient =
         RestClient
             .builder()
-            .baseUrl(baseUrl)
+            .baseUrl(properties.baseUrl)
             .requestFactory(
                 JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build())
                     .apply { setReadTimeout(READ_TIMEOUT) },
@@ -54,8 +46,8 @@ class KakaoMapClient(
     /** 검색어 하나를 서울 영역으로 maxPage 까지(또는 is_end 까지) 조회한다. 실패 시 예외를 그대로 던진다. */
     fun searchAll(query: String): List<KakaoPlace> {
         val places = mutableListOf<KakaoPlace>()
-        for (page in 1..maxPage) {
-            if (page > 1) sleeper(pageDelayMs)
+        for (page in 1..properties.maxPage) {
+            if (page > 1) sleeper(properties.pageDelayMs)
 
             val response = search(query, page)
             places += response.documents.map { mapper.convertValue(it, KakaoPlaceDocument::class.java).toDomain(it) }
@@ -78,7 +70,7 @@ class KakaoMapClient(
                         .queryParam("query", query)
                         .queryParam("size", PAGE_SIZE)
                         .queryParam("page", page)
-                        .queryParam("rect", seoulRect)
+                        .queryParam("rect", properties.seoulRect)
                         .build()
                 }.header(HttpHeaders.AUTHORIZATION, "KakaoAK $apiKey")
                 .retrieve()
