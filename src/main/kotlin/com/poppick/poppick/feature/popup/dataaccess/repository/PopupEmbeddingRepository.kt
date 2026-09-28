@@ -1,11 +1,14 @@
 package com.poppick.poppick.feature.popup.dataaccess.repository
 
 import com.poppick.poppick.feature.popup.dataaccess.entity.PopupEmbeddingEntity
+import com.poppick.poppick.feature.popup.dataaccess.repository.custom.CustomPopupEmbeddingRepository
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 
-interface PopupEmbeddingRepository : JpaRepository<PopupEmbeddingEntity, Long> {
+interface PopupEmbeddingRepository :
+    JpaRepository<PopupEmbeddingEntity, Long>,
+    CustomPopupEmbeddingRepository {
     fun findByPopupIdAndKindAndModel(
         popupId: Long,
         kind: String,

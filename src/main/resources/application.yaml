@@ -8,6 +8,10 @@ spring:
   jpa:
     open-in-view: false
 
+planner:
+  # 벡터 검색으로 뽑아 LLM 에 넘길 후보 팝업 최대 수
+  candidate-limit: 40
+
 management:
   endpoints:
     web:
