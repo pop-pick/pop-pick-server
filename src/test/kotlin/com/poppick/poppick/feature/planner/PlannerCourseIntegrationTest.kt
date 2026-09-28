@@ -29,7 +29,7 @@ import java.time.LocalTime
  * 실데이터 후보 + 실제 OpenAI(임베딩 · Responses) 로 코스를 만들어 출력한다(수동 검증용, 과금 소액).
  * local 프로파일(DB_* · OPENAI_API_KEY) 이 필요하다. 결과는 눈으로 확인한다.
  */
-//@Disabled("수동 실행 전용: OpenAI 과금")
+@Disabled("수동 실행 전용: OpenAI 과금")
 @SpringBootTest
 @ActiveProfiles("local")
 class PlannerCourseIntegrationTest {
