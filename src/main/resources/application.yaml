@@ -8,6 +8,12 @@ spring:
   jpa:
     open-in-view: false
 
+openai:
+  # 플래너 코스 선정(Responses API). 키 · 임베딩 설정은 프로파일별 yml.
+  chat-model: gpt-4.1-mini
+  chat-read-timeout-seconds: 90
+  chat-max-output-tokens: 1024
+
 planner:
   # 벡터 검색으로 뽑아 LLM 에 넘길 후보 팝업 최대 수
   candidate-limit: 40
