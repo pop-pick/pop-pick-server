@@ -51,7 +51,7 @@ openai:
 
 collection:
   # Asia/Seoul 기준
-  cron: "0 24 21 * * *"
+  cron: "0 42 16 * * *"
   enrich-limit: 200
   # 총 시도 횟수(최초 1회 + 재보강 1회)
   enrich-retry-limit: 2
@@ -65,8 +65,8 @@ collection:
     threads: 3
 
 google:
-  client-id: ${GOOGLE_CLIENT_ID}
-  client-secret: ${GOOGLE_CLIENT_SECRET}
+  client-id: ${GOOGLE_CLIENT_ID:ddd}
+  client-secret: ${GOOGLE_CLIENT_SECRET:ddd}
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
