@@ -12,17 +12,14 @@ import java.time.format.DateTimeFormatter
  *    → 도보 11분
  * 2. …
  *
- * POP PICK 에서 만든 코스 · {shareUrl}
+ * POP PICK 에서 만든 코스
  * ```
  */
 object CourseDescription {
     private val HH_MM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private const val INDENT = "   "
 
-    fun build(
-        planner: Planner,
-        shareUrl: String? = null,
-    ): String {
+    fun build(planner: Planner): String {
         val stops =
             planner.stops.sortedBy { it.visitOrder }.flatMap { stop ->
                 listOfNotNull(
@@ -36,7 +33,7 @@ object CourseDescription {
             "",
             *stops.toTypedArray(),
             "",
-            "POP PICK 에서 만든 코스" + (shareUrl?.let { " · $it" } ?: ""),
+            "POP PICK 에서 만든 코스",
         ).joinToString("\n")
     }
 

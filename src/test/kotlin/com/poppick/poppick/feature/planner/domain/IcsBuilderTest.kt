@@ -19,10 +19,7 @@ class IcsBuilderTest :
         val now = Instant.parse("2026-09-28T10:40:00Z")
         val planner = PlannerFixtures.planner()
 
-        fun build(
-            target: Planner = planner,
-            shareUrl: String? = null,
-        ) = IcsBuilder.build(target, "성수", shareUrl, now)
+        fun build(target: Planner = planner) = IcsBuilder.build(target, "성수", now)
 
         /** RFC 5545 unfolding: CRLF + 공백 한 칸을 지운다. */
         fun unfold(ics: String) = ics.replace("\r\n ", "")
@@ -90,13 +87,13 @@ class IcsBuilderTest :
             property(ics, "DESCRIPTION") shouldContain "DESCRIPTION:첫 줄\\n둘째 줄\\n\\n1. 14:00 팝업 1 (60분)"
         }
 
-        test("DESCRIPTION 은 방문 순서대로, 공유 URL 이 있으면 마지막 줄에") {
-            val description = property(build(shareUrl = "https://pop-pick.app/share/abc"), "DESCRIPTION")
+        test("DESCRIPTION 은 방문 순서대로, 마지막 줄은 출처 한 줄") {
+            val description = property(build(), "DESCRIPTION")
 
             description.split("\\n").filter { Regex("^\\d\\. ").containsMatchIn(it) } shouldBe
                 listOf("1. 14:00 팝업 1 (60분)", "2. 15:10 팝업 2 (60분)", "3. 16:20 팝업 3 (60분)")
             description shouldContain "→ 도보 10분"
-            description shouldEndWith "POP PICK 에서 만든 코스 · https://pop-pick.app/share/abc"
+            description shouldEndWith "\\n\\nPOP PICK 에서 만든 코스"
         }
 
         test("75옥텟 넘는 한글 줄은 UTF-8 경계에서 접히고, 펼치면 원문과 같다") {

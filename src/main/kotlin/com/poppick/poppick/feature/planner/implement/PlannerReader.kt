@@ -23,10 +23,6 @@ class PlannerReader(
     /** 회원의 확정(SCHEDULED) 일정에 들어간 팝업 id. 다음 추천에서 뺀다. */
     fun findScheduledPopupIds(memberKey: String): Set<Long> = plannerRepository.findScheduledPopupIds(memberKey)
 
-    /** 공유 토큰으로 조회. 없으면 NULL(상태 판단은 호출 측). */
-    @Transactional(readOnly = true)
-    fun findByShareToken(token: String): Planner? = plannerRepository.findByShareTokenWithStops(token)?.toDomain()
-
     /**
      * "내 일정" 목록 한 페이지. limit + 1 건을 읽어 다음 페이지 유무를 판단한다.
      * 방문지는 개수 · 첫 방문지만 IN 두 번으로 붙인다(N+1 없음).

@@ -7,7 +7,6 @@ import com.poppick.poppick.feature.planner.presentation.dto.request.PlannerGener
 import com.poppick.poppick.feature.planner.presentation.dto.response.PlannerCalendarResponse
 import com.poppick.poppick.feature.planner.presentation.dto.response.PlannerFormResponse
 import com.poppick.poppick.feature.planner.presentation.dto.response.PlannerResponse
-import com.poppick.poppick.feature.planner.presentation.dto.response.PlannerShareResponse
 import com.poppick.poppick.feature.planner.presentation.dto.response.PlannerSummaryResponse
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.response.ApiResponse
@@ -84,13 +83,6 @@ class PlannerController(
         plannerService.cancel(member.memberKey, plannerId)
         return ResponseEntity.noContent().build()
     }
-
-    @PostMapping("/{plannerId}/share")
-    fun share(
-        @AuthMember member: Member,
-        @PathVariable plannerId: Long,
-    ): ResponseEntity<ApiResponse<PlannerShareResponse>> =
-        ResponseEntity.ok(ApiResponse.success(PlannerShareResponse.from(plannerService.share(member.memberKey, plannerId))))
 
     @GetMapping("/{plannerId}/calendar")
     fun calendar(

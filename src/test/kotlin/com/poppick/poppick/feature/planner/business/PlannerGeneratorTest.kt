@@ -204,7 +204,6 @@ class PlannerGeneratorTest :
                 totalMin shouldBe 200
                 totalTravelM shouldBe 1336
                 requestNote shouldBe "향수 만들기"
-                shareToken shouldBe null
                 createdAt shouldBe java.time.OffsetDateTime.now(clock)
                 stops.map { it.popupId } shouldBe listOf(1L, 2L, 3L)
                 stops[0].title shouldBe "팝업1"

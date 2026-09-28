@@ -15,7 +15,6 @@ object GoogleCalendarLink {
     fun build(
         planner: Planner,
         areaName: String,
-        shareUrl: String? = null,
     ): String {
         val dates = "${local(planner.visitDate, planner.startTime)}/${local(planner.visitDate, planner.endTime)}"
         val params =
@@ -24,7 +23,7 @@ object GoogleCalendarLink {
                 "text" to planner.title,
                 "dates" to dates,
                 "ctz" to TIME_ZONE,
-                "details" to CourseDescription.build(planner, shareUrl),
+                "details" to CourseDescription.build(planner),
                 "location" to CourseDescription.location(planner, areaName),
             )
         return BASE + "?" + params.joinToString("&") { (key, value) -> "$key=${encode(value)}" }

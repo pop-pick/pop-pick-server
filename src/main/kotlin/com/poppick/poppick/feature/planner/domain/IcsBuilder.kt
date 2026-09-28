@@ -22,7 +22,6 @@ object IcsBuilder {
     fun build(
         planner: Planner,
         areaName: String,
-        shareUrl: String? = null,
         now: Instant = Instant.now(),
     ): String =
         listOf(
@@ -38,7 +37,7 @@ object IcsBuilder {
             "DTEND;TZID=$TIME_ZONE:${local(planner.visitDate, planner.endTime)}",
             "SUMMARY:${escape(planner.title)}",
             "LOCATION:${escape(CourseDescription.location(planner, areaName))}",
-            "DESCRIPTION:${escape(CourseDescription.build(planner, shareUrl))}",
+            "DESCRIPTION:${escape(CourseDescription.build(planner))}",
             "END:VEVENT",
             "END:VCALENDAR",
         ).joinToString(separator = CRLF, postfix = CRLF) { fold(it) }

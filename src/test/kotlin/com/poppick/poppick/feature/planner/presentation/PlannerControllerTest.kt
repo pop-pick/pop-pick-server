@@ -15,7 +15,6 @@ import com.poppick.poppick.feature.planner.domain.PlannerDetail
 import com.poppick.poppick.feature.planner.domain.PlannerForm
 import com.poppick.poppick.feature.planner.domain.PlannerGenerateCommand
 import com.poppick.poppick.feature.planner.domain.PlannerListTab
-import com.poppick.poppick.feature.planner.domain.PlannerShare
 import com.poppick.poppick.feature.planner.domain.PlannerStatus
 import com.poppick.poppick.feature.planner.domain.PlannerSummary
 import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
@@ -322,17 +321,6 @@ class PlannerControllerTest {
     }
 
     @Test
-    fun `POST share - shareToken · shareUrl`() {
-        every { plannerService.share("member-1", 12) } returns PlannerShare("k3Jx", "https://pop-pick.app/share/k3Jx")
-
-        mockMvc
-            .perform(post("/api/v1/planners/12/share").asMember())
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.shareToken").value("k3Jx"))
-            .andExpect(jsonPath("$.data.shareUrl").value("https://pop-pick.app/share/k3Jx"))
-    }
-
-    @Test
     fun `GET calendar - 구글 링크와 ics 경로`() {
         every { plannerService.calendar("member-1", 12) } returns "https://calendar.google.com/calendar/render?action=TEMPLATE"
 
@@ -360,7 +348,6 @@ class PlannerControllerTest {
         listOf(
             get("/api/v1/planners"),
             delete("/api/v1/planners/12"),
-            post("/api/v1/planners/12/share"),
             get("/api/v1/planners/12/calendar"),
             get("/api/v1/planners/12/calendar.ics"),
         ).forEach { request ->

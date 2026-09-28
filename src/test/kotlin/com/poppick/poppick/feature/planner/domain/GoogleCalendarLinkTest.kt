@@ -39,9 +39,9 @@ class GoogleCalendarLinkTest :
 
         test("details 는 CourseDescription 본문, 첫 방문지 주소가 없으면 location 은 지역 이름") {
             val noAddress = planner.copy(stops = planner.stops.map { it.copy(address = null) })
-            val params = params(GoogleCalendarLink.build(noAddress, "성수", "https://pop-pick.app/share/abc"))
+            val params = params(GoogleCalendarLink.build(noAddress, "성수"))
 
-            params["details"] shouldBe CourseDescription.build(noAddress, "https://pop-pick.app/share/abc")
+            params["details"] shouldBe CourseDescription.build(noAddress)
             params["location"] shouldBe "성수"
         }
     })

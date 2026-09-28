@@ -45,20 +45,4 @@ class PlannerWriter(
     fun delete(id: Long) {
         plannerRepository.deleteById(id)
     }
-
-    /**
-     * 공유 토큰을 저장한다. 이미 있으면 그 값을 그대로 돌려준다(동시 요청에도 멱등).
-     * 유일 인덱스 충돌은 flush 에서 DataIntegrityViolationException 으로 나온다(호출 측이 재생성).
-     */
-    @Transactional
-    fun assignShareToken(
-        id: Long,
-        token: String,
-    ): String {
-        val entity = plannerRepository.findById(id).orElseThrow { AppException(ErrorType.PLANNER_NOT_FOUND) }
-        entity.shareToken?.let { return it }
-        entity.shareToken = token
-        plannerRepository.flush()
-        return token
-    }
 }

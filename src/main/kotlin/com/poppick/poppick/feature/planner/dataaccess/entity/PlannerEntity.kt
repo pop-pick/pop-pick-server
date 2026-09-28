@@ -53,7 +53,6 @@ class PlannerEntity(
     var totalMin: Int,
     @Column(name = "total_travel_m", nullable = false)
     var totalTravelM: Int,
-    var shareToken: String? = null,
     @Column(nullable = false, updatable = false)
     var createdAt: OffsetDateTime = OffsetDateTime.now(KST),
     @Column(nullable = false)
@@ -86,7 +85,6 @@ class PlannerEntity(
                 requestNote = planner.requestNote,
                 totalMin = planner.totalMin,
                 totalTravelM = planner.totalTravelM,
-                shareToken = planner.shareToken,
                 createdAt = planner.createdAt,
                 updatedAt = planner.createdAt,
                 confirmedAt = planner.confirmedAt,
@@ -126,7 +124,6 @@ class PlannerEntity(
             requestNote = requestNote,
             totalMin = totalMin,
             totalTravelM = totalTravelM,
-            shareToken = shareToken,
             createdAt = createdAt,
             confirmedAt = confirmedAt,
             canceledAt = canceledAt,

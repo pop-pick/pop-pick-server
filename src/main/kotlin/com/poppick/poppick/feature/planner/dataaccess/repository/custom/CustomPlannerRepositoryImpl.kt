@@ -111,11 +111,4 @@ class CustomPlannerRepositoryImpl :
             .fetch()
             .associateBy { it.planner.id!! }
     }
-
-    override fun findByShareTokenWithStops(shareToken: String): PlannerEntity? =
-        selectFrom(plannerEntity)
-            .leftJoin(plannerEntity.stops, plannerPopupEntity)
-            .fetchJoin()
-            .where(plannerEntity.shareToken.eq(shareToken))
-            .fetchOne()
 }

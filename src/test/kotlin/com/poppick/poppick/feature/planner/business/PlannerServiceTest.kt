@@ -1,6 +1,5 @@
 package com.poppick.poppick.feature.planner.business
 
-import com.poppick.poppick.config.properties.PlannerProperties
 import com.poppick.poppick.feature.member.domain.FavoriteArea
 import com.poppick.poppick.feature.member.implement.FavoriteAreaReader
 import com.poppick.poppick.feature.planner.PlannerFixtures
@@ -11,7 +10,6 @@ import com.poppick.poppick.feature.planner.domain.PlannerSummary
 import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
 import com.poppick.poppick.feature.planner.implement.PlannerReader
 import com.poppick.poppick.feature.planner.implement.PlannerWriter
-import com.poppick.poppick.feature.planner.implement.ShareTokenGenerator
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.paging.Cursorable
@@ -22,7 +20,6 @@ import io.kotest.matchers.string.shouldContain
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.springframework.dao.DataIntegrityViolationException
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -41,14 +38,11 @@ class PlannerServiceTest :
             val generator = mockk<PlannerGenerator>()
             val reader = mockk<PlannerReader>()
             val writer = mockk<PlannerWriter>(relaxed = true)
-            val tokenGenerator = mockk<ShareTokenGenerator>()
             val service =
                 PlannerService(
                     plannerGenerator = generator,
                     plannerReader = reader,
                     plannerWriter = writer,
-                    shareTokenGenerator = tokenGenerator,
-                    plannerProperties = PlannerProperties(shareBaseUrl = "https://pop-pick.app/share/"),
                     memberPreferenceReader = mockk(),
                     favoriteAreaReader = mockk<FavoriteAreaReader> { every { findAll() } returns listOf(FavoriteArea(1, "성수")) },
                     interestCategoryReader = mockk(),
@@ -96,74 +90,6 @@ class PlannerServiceTest :
                 errorOf { fixture.service.cancel(memberKey, 12) } shouldBe ErrorType.PLANNER_FORBIDDEN
                 verify(exactly = 0) { fixture.writer.cancel(any(), any()) }
                 verify(exactly = 0) { fixture.writer.delete(any()) }
-            }
-        }
-
-        context("share") {
-            test("토큰이 이미 있으면 재사용하고 새로 만들지 않는다") {
-                val fixture = Fixture()
-                every { fixture.generator.get(memberKey, 12) } returns
-                    PlannerFixtures.planner(status = PlannerStatus.SCHEDULED).copy(shareToken = "existing-token")
-
-                val share = fixture.service.share(memberKey, 12)
-
-                share.shareToken shouldBe "existing-token"
-                share.shareUrl shouldBe "https://pop-pick.app/share/existing-token"
-                verify(exactly = 0) { fixture.tokenGenerator.generate() }
-                verify(exactly = 0) { fixture.writer.assignShareToken(any(), any()) }
-            }
-
-            test("없으면 발급해 저장한다") {
-                val fixture = Fixture()
-                fixture.owned(PlannerStatus.SCHEDULED)
-                every { fixture.tokenGenerator.generate() } returns "new-token"
-                every { fixture.writer.assignShareToken(12, "new-token") } returns "new-token"
-
-                fixture.service.share(memberKey, 12).shareUrl shouldBe "https://pop-pick.app/share/new-token"
-            }
-
-            test("유일 인덱스 충돌이면 1회 재생성한다") {
-                val fixture = Fixture()
-                fixture.owned(PlannerStatus.SCHEDULED)
-                every { fixture.tokenGenerator.generate() } returns "dup" andThen "fresh"
-                every { fixture.writer.assignShareToken(12, "dup") } throws DataIntegrityViolationException("uq_planner_share_token")
-                every { fixture.writer.assignShareToken(12, "fresh") } returns "fresh"
-
-                fixture.service.share(memberKey, 12).shareToken shouldBe "fresh"
-            }
-
-            test("DRAFT · CANCELED 는 INVALID_PLANNER_STATUS") {
-                listOf(PlannerStatus.DRAFT, PlannerStatus.CANCELED).forEach { status ->
-                    val fixture = Fixture()
-                    fixture.owned(status)
-
-                    errorOf { fixture.service.share(memberKey, 12) } shouldBe ErrorType.INVALID_PLANNER_STATUS
-                }
-            }
-        }
-
-        context("getShared") {
-            test("없는 토큰 → PLANNER_NOT_FOUND") {
-                val fixture = Fixture()
-                every { fixture.reader.findByShareToken("nope") } returns null
-
-                errorOf { fixture.service.getShared("nope") } shouldBe ErrorType.PLANNER_NOT_FOUND
-            }
-
-            test("CANCELED → PLANNER_NOT_FOUND(취소하면 공유 링크도 죽는다)") {
-                val fixture = Fixture()
-                every { fixture.reader.findByShareToken("t") } returns PlannerFixtures.planner(status = PlannerStatus.CANCELED)
-
-                errorOf { fixture.service.getShared("t") } shouldBe ErrorType.PLANNER_NOT_FOUND
-                errorOf { fixture.service.sharedCalendarIcs("t") } shouldBe ErrorType.PLANNER_NOT_FOUND
-            }
-
-            test("SCHEDULED 면 지난 일정이어도 보여준다") {
-                val fixture = Fixture()
-                every { fixture.reader.findByShareToken("t") } returns
-                    PlannerFixtures.planner(status = PlannerStatus.SCHEDULED, visitDate = today.minusDays(30))
-
-                fixture.service.getShared("t").areaName shouldBe "성수"
             }
         }
 
@@ -245,13 +171,22 @@ class PlannerServiceTest :
         }
 
         context("calendar") {
-            test("공유 토큰이 있으면 본문 마지막 줄에 공유 URL") {
+            test("소유자 검사를 거쳐 현재 시각(DTSTAMP)으로 .ics 를 만든다") {
                 val fixture = Fixture()
-                every { fixture.generator.get(memberKey, 12) } returns
-                    PlannerFixtures.planner(status = PlannerStatus.SCHEDULED).copy(shareToken = "tok")
+                fixture.owned(PlannerStatus.SCHEDULED)
 
-                fixture.service.calendarIcs(memberKey, 12) shouldContain "POP PICK 에서 만든 코스 · https://pop-pick.app/share/tok"
-                fixture.service.calendarIcs(memberKey, 12) shouldContain "DTSTAMP:20260928T104000Z"
+                val ics = fixture.service.calendarIcs(memberKey, 12)
+
+                ics shouldContain "DTSTAMP:20260928T104000Z"
+                ics shouldContain "LOCATION:서울 성동구 성수동2가 301-13"
+                verify { fixture.generator.get(memberKey, 12) }
+            }
+
+            test("구글 캘린더 링크도 소유자 검사를 거친다") {
+                val fixture = Fixture()
+                every { fixture.generator.get(memberKey, 12) } throws AppException(ErrorType.PLANNER_FORBIDDEN)
+
+                errorOf { fixture.service.calendar(memberKey, 12) } shouldBe ErrorType.PLANNER_FORBIDDEN
             }
         }
     })

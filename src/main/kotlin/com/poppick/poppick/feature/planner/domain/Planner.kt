@@ -24,8 +24,6 @@ data class Planner(
     val requestNote: String?,
     val totalMin: Int,
     val totalTravelM: Int,
-    /** 공유 토큰. 공유 시 발급(6단계), 그 전엔 NULL. */
-    val shareToken: String?,
     val createdAt: OffsetDateTime,
     val confirmedAt: OffsetDateTime?,
     val canceledAt: OffsetDateTime?,
@@ -71,7 +69,6 @@ data class Planner(
                     ?.take(MAX_NOTE),
             totalMin = course.totalMin,
             totalTravelM = course.totalTravelM,
-            shareToken = null,
             createdAt = now,
             confirmedAt = null,
             canceledAt = null,

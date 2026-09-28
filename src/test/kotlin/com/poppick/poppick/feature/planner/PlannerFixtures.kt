@@ -55,7 +55,6 @@ object PlannerFixtures {
         requestNote = "향수 만들기",
         totalMin = 200,
         totalTravelM = 1336,
-        shareToken = null,
         createdAt = createdAt,
         confirmedAt = null,
         canceledAt = null,

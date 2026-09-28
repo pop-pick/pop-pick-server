@@ -35,7 +35,4 @@ interface CustomPlannerRepository {
 
     /** 플래너별 첫 방문지(visit_order = 1). IN 한 번으로. */
     fun findFirstStops(plannerIds: Collection<Long>): Map<Long, PlannerPopupEntity>
-
-    /** planner + stops. 공유 조회용. */
-    fun findByShareTokenWithStops(shareToken: String): PlannerEntity?
 }
