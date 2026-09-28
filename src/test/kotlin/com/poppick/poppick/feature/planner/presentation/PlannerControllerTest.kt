@@ -14,7 +14,12 @@ import com.poppick.poppick.feature.planner.domain.DurationType
 import com.poppick.poppick.feature.planner.domain.PlannerDetail
 import com.poppick.poppick.feature.planner.domain.PlannerForm
 import com.poppick.poppick.feature.planner.domain.PlannerGenerateCommand
+import com.poppick.poppick.feature.planner.domain.PlannerListTab
+import com.poppick.poppick.feature.planner.domain.PlannerShare
 import com.poppick.poppick.feature.planner.domain.PlannerStatus
+import com.poppick.poppick.feature.planner.domain.PlannerSummary
+import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
+import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.security.domain.AuthMember
 import com.poppick.poppick.security.entrypoint.JwtAuthenticationEntryPoint
 import com.poppick.poppick.security.enums.MemberRole
@@ -32,14 +37,18 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
@@ -230,5 +239,132 @@ class PlannerControllerTest {
                 .andExpect(jsonPath("$.error.errorCode").value("E1000"))
         }
         verify(exactly = 0) { plannerService.form(any()) }
+    }
+
+    @Test
+    fun `GET 목록 - tab · cursor · size 를 넘기고 PageResponse(nextCursor) 로 응답`() {
+        every { plannerService.list("member-1", PlannerListTab.PAST, Cursorable("2026-09-01T14:00_3", 10)) } returns
+            PlannerSummaryPage(
+                content =
+                    listOf(
+                        PlannerSummary(
+                            id = 12,
+                            status = PlannerStatus.SCHEDULED,
+                            title = "성수 코스",
+                            areaId = 1,
+                            visitDate = LocalDate.of(2026, 8, 30),
+                            startTime = LocalTime.of(14, 0),
+                            endTime = LocalTime.of(17, 19),
+                            totalMin = 199,
+                            stopCount = 3,
+                            firstStop = PlannerSummary.FirstStop("오래오래 함께가게", null),
+                            canceledAt = null,
+                            areaName = "성수",
+                        ),
+                    ),
+                hasNext = true,
+                nextCursor = "2026-08-30T14:00_12",
+            )
+
+        mockMvc
+            .perform(
+                get("/api/v1/planners")
+                    .param("tab", "PAST")
+                    .param("cursor", "2026-09-01T14:00_3")
+                    .param("size", "10")
+                    .asMember(),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.hasNext").value(true))
+            .andExpect(jsonPath("$.data.nextCursor").value("2026-08-30T14:00_12"))
+            .andExpect(jsonPath("$.data.content[0].plannerId").value(12))
+            .andExpect(jsonPath("$.data.content[0].area.name").value("성수"))
+            .andExpect(jsonPath("$.data.content[0].startTime").value("14:00"))
+            .andExpect(jsonPath("$.data.content[0].endTime").value("17:19"))
+            .andExpect(jsonPath("$.data.content[0].stopCount").value(3))
+            .andExpect(jsonPath("$.data.content[0].firstStop.title").value("오래오래 함께가게"))
+            .andExpect(jsonPath("$.data.content[0].canceledAt").isEmpty)
+            .andExpect(jsonPath("$.data.content[0].stops").doesNotExist())
+    }
+
+    @Test
+    fun `GET 목록 - tab 기본값은 UPCOMING, size 기본 20`() {
+        every { plannerService.list("member-1", PlannerListTab.UPCOMING, Cursorable(null, 20)) } returns
+            PlannerSummaryPage(emptyList(), false, null)
+
+        mockMvc
+            .perform(get("/api/v1/planners").asMember())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content").isEmpty)
+            .andExpect(jsonPath("$.data.hasNext").value(false))
+    }
+
+    @Test
+    fun `GET 목록 - 잘못된 tab 은 400, size 51 은 400`() {
+        mockMvc
+            .perform(get("/api/v1/planners").param("tab", "DRAFT").asMember())
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.errorCode").value("E400"))
+            .andExpect(jsonPath("$.error.data[0].field").value("tab"))
+        mockMvc
+            .perform(get("/api/v1/planners").param("size", "51").asMember())
+            .andExpect(status().isBadRequest)
+        verify(exactly = 0) { plannerService.list(any(), any(), any()) }
+    }
+
+    @Test
+    fun `DELETE - 204`() {
+        every { plannerService.cancel("member-1", 12) } returns Unit
+
+        mockMvc
+            .perform(delete("/api/v1/planners/12").asMember())
+            .andExpect(status().isNoContent)
+        verify { plannerService.cancel("member-1", 12) }
+    }
+
+    @Test
+    fun `POST share - shareToken · shareUrl`() {
+        every { plannerService.share("member-1", 12) } returns PlannerShare("k3Jx", "https://pop-pick.app/share/k3Jx")
+
+        mockMvc
+            .perform(post("/api/v1/planners/12/share").asMember())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.shareToken").value("k3Jx"))
+            .andExpect(jsonPath("$.data.shareUrl").value("https://pop-pick.app/share/k3Jx"))
+    }
+
+    @Test
+    fun `GET calendar - 구글 링크와 ics 경로`() {
+        every { plannerService.calendar("member-1", 12) } returns "https://calendar.google.com/calendar/render?action=TEMPLATE"
+
+        mockMvc
+            .perform(get("/api/v1/planners/12/calendar").asMember())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.googleCalendarUrl").value("https://calendar.google.com/calendar/render?action=TEMPLATE"))
+            .andExpect(jsonPath("$.data.icsUrl").value("/api/v1/planners/12/calendar.ics"))
+    }
+
+    @Test
+    fun `GET calendar_ics - text calendar 와 첨부 파일 이름`() {
+        every { plannerService.calendarIcs("member-1", 12) } returns "BEGIN:VCALENDAR\r\nSUMMARY:성수 코스\r\nEND:VCALENDAR\r\n"
+
+        mockMvc
+            .perform(get("/api/v1/planners/12/calendar.ics").asMember())
+            .andExpect(status().isOk)
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/calendar;charset=UTF-8"))
+            .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"poppick-planner-12.ics\""))
+            .andExpect(content().bytes("BEGIN:VCALENDAR\r\nSUMMARY:성수 코스\r\nEND:VCALENDAR\r\n".toByteArray(Charsets.UTF_8)))
+    }
+
+    @Test
+    fun `6단계 엔드포인트도 미인증이면 401`() {
+        listOf(
+            get("/api/v1/planners"),
+            delete("/api/v1/planners/12"),
+            post("/api/v1/planners/12/share"),
+            get("/api/v1/planners/12/calendar"),
+            get("/api/v1/planners/12/calendar.ics"),
+        ).forEach { request ->
+            mockMvc.perform(request).andExpect(status().isUnauthorized)
+        }
     }
 }
