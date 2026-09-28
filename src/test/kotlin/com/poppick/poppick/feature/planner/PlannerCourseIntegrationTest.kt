@@ -1,21 +1,12 @@
 package com.poppick.poppick.feature.planner
 
-import com.poppick.poppick.config.properties.OpenAiProperties
-import com.poppick.poppick.config.properties.PlannerProperties
 import com.poppick.poppick.feature.member.domain.AccompanyType
-import com.poppick.poppick.feature.member.domain.MemberPreference
-import com.poppick.poppick.feature.member.implement.MemberPreferenceReader
 import com.poppick.poppick.feature.planner.domain.CandidateCondition
 import com.poppick.poppick.feature.planner.domain.CourseCondition
 import com.poppick.poppick.feature.planner.domain.DurationType
 import com.poppick.poppick.feature.planner.implement.CandidatePopupFinder
 import com.poppick.poppick.feature.planner.implement.CourseComposer
-import com.poppick.poppick.feature.popup.dataaccess.client.openai.OpenAiEmbeddingClient
-import com.poppick.poppick.feature.popup.implement.PopupEmbeddingReader
-import com.poppick.poppick.feature.popup.implement.PopupReader
 import com.poppick.poppick.global.util.KST
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -34,40 +25,24 @@ import java.time.LocalTime
 @ActiveProfiles("local")
 class PlannerCourseIntegrationTest {
     @Autowired
-    lateinit var openAiEmbeddingClient: OpenAiEmbeddingClient
-
-    @Autowired
-    lateinit var popupEmbeddingReader: PopupEmbeddingReader
-
-    @Autowired
-    lateinit var popupReader: PopupReader
-
-    @Autowired
-    lateinit var openAiProperties: OpenAiProperties
-
-    @Autowired
-    lateinit var plannerProperties: PlannerProperties
+    lateinit var candidatePopupFinder: CandidatePopupFinder
 
     @Autowired
     lateinit var courseComposer: CourseComposer
 
     @Test
     fun printSeongsu() {
-        // 회원 온보딩 대신 취향을 고정한다.
-        val finder =
-            CandidatePopupFinder(
-                memberPreferenceReader =
-                    mockk<MemberPreferenceReader> {
-                        every { find(any()) } returns MemberPreference(listOf("캐릭터/IP", "뷰티"), listOf("사진 찍기"))
-                    },
-                openAiEmbeddingClient = openAiEmbeddingClient,
-                popupEmbeddingReader = popupEmbeddingReader,
-                popupReader = popupReader,
-                openAiProperties = openAiProperties,
-                plannerProperties = plannerProperties,
-            )
         val visitDate = LocalDate.now(KST).plusDays(5)
-        val candidates = finder.find(CandidateCondition(memberKey = "integration-test", areaId = 1, visitDate = visitDate, note = null))
+        val candidates =
+            candidatePopupFinder.find(
+                CandidateCondition(
+                    areaId = 1,
+                    visitDate = visitDate,
+                    categories = listOf("캐릭터/IP", "뷰티"),
+                    activities = listOf("사진 찍기"),
+                    note = null,
+                ),
+            )
         val durationType = DurationType.HALF_DAY
         println("candidates=${candidates.size}")
         assumeTrue(candidates.size >= durationType.minStops, "후보 ${candidates.size}건 < minStops ${durationType.minStops}")

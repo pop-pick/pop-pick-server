@@ -1,8 +1,6 @@
 package com.poppick.poppick.feature.planner.implement
 
 import com.poppick.poppick.config.properties.PlannerProperties
-import com.poppick.poppick.feature.member.domain.MemberPreference
-import com.poppick.poppick.feature.member.implement.MemberPreferenceReader
 import com.poppick.poppick.feature.planner.domain.CandidateCondition
 import com.poppick.poppick.feature.popup.Fixtures
 import com.poppick.poppick.feature.popup.dataaccess.client.openai.OpenAiEmbeddingClient
@@ -29,7 +27,6 @@ class CandidatePopupFinderTest :
         fun popup(id: Long) = Popup(id = id, source = SourceType.KAKAO_MAP, title = "팝업$id")
 
         class Fixture(
-            preference: MemberPreference = MemberPreference(listOf("캐릭터/IP"), listOf("사진 찍기")),
             hits: List<PopupSimilarity> = emptyList(),
         ) {
             val embeddingClient = mockk<OpenAiEmbeddingClient>()
@@ -37,7 +34,6 @@ class CandidatePopupFinderTest :
             val popupReader = mockk<PopupReader>()
             val finder =
                 CandidatePopupFinder(
-                    memberPreferenceReader = mockk<MemberPreferenceReader> { every { find(any()) } returns preference },
                     openAiEmbeddingClient = embeddingClient,
                     popupEmbeddingReader = popupEmbeddingReader,
                     popupReader = popupReader,
@@ -56,7 +52,16 @@ class CandidatePopupFinderTest :
         fun condition(
             note: String? = null,
             exclude: Set<Long> = emptySet(),
-        ) = CandidateCondition(memberKey = "member-1", areaId = 3, visitDate = visitDate, note = note, excludePopupIds = exclude)
+            categories: List<String> = listOf("캐릭터/IP"),
+            activities: List<String> = listOf("사진 찍기"),
+        ) = CandidateCondition(
+            areaId = 3,
+            visitDate = visitDate,
+            categories = categories,
+            activities = activities,
+            note = note,
+            excludePopupIds = exclude,
+        )
 
         test("쿼리 텍스트가 있으면 embed 1회 후 그 벡터로 검색한다") {
             val fixture = Fixture()
@@ -68,9 +73,9 @@ class CandidatePopupFinderTest :
         }
 
         test("쿼리 텍스트가 NULL 이면 embed 없이 queryVector=null 로 검색한다") {
-            val fixture = Fixture(preference = MemberPreference(emptyList(), emptyList()))
+            val fixture = Fixture()
 
-            fixture.finder.find(condition())
+            fixture.finder.find(condition(categories = emptyList(), activities = emptyList()))
 
             verify(exactly = 0) { fixture.embeddingClient.embed(any()) }
             verify { fixture.popupEmbeddingReader.searchSimilar(null, model, 3, visitDate, emptySet(), 40) }
