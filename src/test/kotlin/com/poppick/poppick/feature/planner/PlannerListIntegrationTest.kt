@@ -27,7 +27,7 @@ import java.util.UUID
  * "내 일정" 목록 쿼리를 실 DB 로 확인한다(수동 검증용). 픽스처는 직접 저장하고 @Transactional 로 롤백된다.
  * local 프로파일(DB_*) 과 planner · planner_popup 테이블이 필요하다. 방문지는 popup_id NULL 로 저장해 popup 에 의존하지 않는다.
  */
-//@Disabled("수동 실행 전용: 실 DB 쓰기(롤백)")
+@Disabled("수동 실행 전용: 실 DB 쓰기(롤백)")
 @SpringBootTest
 @ActiveProfiles("local")
 class PlannerListIntegrationTest {
