@@ -4,6 +4,7 @@ import com.poppick.poppick.config.properties.CollectionProperties
 import com.poppick.poppick.config.properties.KakaoMapProperties
 import com.poppick.poppick.config.properties.OpenAiProperties
 import com.poppick.poppick.config.properties.PerplexityProperties
+import com.poppick.poppick.feature.member.domain.FavoriteArea
 import org.springframework.core.io.ClassPathResource
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
@@ -13,6 +14,18 @@ object Fixtures {
     val jsonMapper: JsonMapper = JsonMapper.builder().addModule(KotlinModule.Builder().build()).build()
 
     fun read(path: String): String = ClassPathResource("fixtures/$path").getContentAsString(Charsets.UTF_8)
+
+    /** favorite_area 테이블 값(id, area). 보강 응답의 area enum 과 글자 단위로 같다. */
+    val favoriteAreas =
+        listOf(
+            FavoriteArea(1, "성수"),
+            FavoriteArea(2, "여의도"),
+            FavoriteArea(3, "홍대"),
+            FavoriteArea(4, "잠실"),
+            FavoriteArea(5, "용산"),
+            FavoriteArea(6, "종로"),
+            FavoriteArea(7, "강남"),
+        )
 
     /** yml(collection.*) 과 같은 값. 테스트마다 필요한 것만 바꿔 쓴다. */
     fun collectionProperties(
