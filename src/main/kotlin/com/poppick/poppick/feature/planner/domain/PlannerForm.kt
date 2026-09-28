@@ -24,3 +24,9 @@ data class PlannerDetail(
     /** favorite_area.area. 지역이 지워졌으면 NULL. */
     val areaName: String?,
 )
+
+/** 공유 링크. shareUrl 은 서버가 조립하고 앱은 그대로 공유한다. */
+data class PlannerShare(
+    val shareToken: String,
+    val shareUrl: String,
+)

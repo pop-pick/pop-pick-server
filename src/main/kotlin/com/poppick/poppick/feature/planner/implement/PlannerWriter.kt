@@ -8,6 +8,7 @@ import com.poppick.poppick.global.exception.ErrorType
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 
 @Component
 class PlannerWriter(
@@ -26,5 +27,38 @@ class PlannerWriter(
         val entity = plannerRepository.findByIdWithStops(id) ?: throw AppException(ErrorType.PLANNER_NOT_FOUND)
         entity.confirm(now)
         return entity.toDomain()
+    }
+
+    /** SCHEDULED → CANCELED. canceled_at 은 목록 커서(epoch ms)와 맞게 ms 단위로 자른다. 상태 · 소유자 검증은 호출 측. */
+    @Transactional
+    fun cancel(
+        id: Long,
+        now: OffsetDateTime,
+    ): Planner {
+        val entity = plannerRepository.findByIdWithStops(id) ?: throw AppException(ErrorType.PLANNER_NOT_FOUND)
+        entity.cancel(now.truncatedTo(ChronoUnit.MILLIS))
+        return entity.toDomain()
+    }
+
+    /** 물리 삭제(DRAFT 폐기). planner_popup 은 FK CASCADE · JPA cascade 로 함께 지워진다. */
+    @Transactional
+    fun delete(id: Long) {
+        plannerRepository.deleteById(id)
+    }
+
+    /**
+     * 공유 토큰을 저장한다. 이미 있으면 그 값을 그대로 돌려준다(동시 요청에도 멱등).
+     * 유일 인덱스 충돌은 flush 에서 DataIntegrityViolationException 으로 나온다(호출 측이 재생성).
+     */
+    @Transactional
+    fun assignShareToken(
+        id: Long,
+        token: String,
+    ): String {
+        val entity = plannerRepository.findById(id).orElseThrow { AppException(ErrorType.PLANNER_NOT_FOUND) }
+        entity.shareToken?.let { return it }
+        entity.shareToken = token
+        plannerRepository.flush()
+        return token
     }
 }

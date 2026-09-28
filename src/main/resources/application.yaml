@@ -17,6 +17,8 @@ openai:
 planner:
   # 벡터 검색으로 뽑아 LLM 에 넘길 후보 팝업 최대 수
   candidate-limit: 40
+  # 공유 링크 앞부분(서버가 "{share-base-url}/{token}" 으로 조립해 내려준다)
+  share-base-url: https://pop-pick.app/share
 
 management:
   endpoints:

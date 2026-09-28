@@ -105,6 +105,11 @@ class PlannerEntity(
         confirmedAt = now
     }
 
+    fun cancel(now: OffsetDateTime) {
+        status = PlannerStatus.CANCELED
+        canceledAt = now
+    }
+
     fun toDomain() =
         Planner(
             id = id,
