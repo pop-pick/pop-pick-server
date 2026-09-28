@@ -18,6 +18,7 @@ import org.springframework.security.core.AuthenticationException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 val logger = KotlinLogging.logger { }
 
@@ -63,6 +64,18 @@ class GlobalExceptionHandler {
         e
             .also { logger.warn { "[Validation] unreadable body: ${it.mostSpecificCause.message}" } }
             .let { AppException(ErrorType.INVALID_REQUEST).toErrorResponse() }
+
+    /** 쿼리 · 경로 파라미터 타입 오류(잘못된 enum 값 등). */
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatch(e: MethodArgumentTypeMismatchException) =
+        e
+            .also { logger.warn { "[Validation] parameter ${it.name}=${it.value}: ${it.message}" } }
+            .let {
+                AppException(
+                    ErrorType.INVALID_REQUEST,
+                    errorData = listOf(FieldErrorData(it.name, "형식이 올바르지 않습니다.")),
+                ).toErrorResponse()
+            }
 
     /** LLM 코스 생성 실패(응답 검증 실패 · OpenAI 호출 실패). */
     @ExceptionHandler(CourseGenerationException::class, OpenAiClientException::class)
