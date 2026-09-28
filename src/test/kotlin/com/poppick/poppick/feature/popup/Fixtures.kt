@@ -73,5 +73,7 @@ object Fixtures {
         embeddingDimensions = embeddingDimensions,
         readTimeoutSeconds = 60,
         batchSize = batchSize,
+        chatModel = "gpt-4.1-mini",
+        chatReadTimeoutSeconds = 90,
     )
 }
