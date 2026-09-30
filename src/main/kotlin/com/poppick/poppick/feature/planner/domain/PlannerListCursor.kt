@@ -76,6 +76,7 @@ data class PlannerSummary(
     val totalMin: Int,
     val stopCount: Int,
     val firstStop: FirstStop?,
+    val confirmedAt: OffsetDateTime?,
     val canceledAt: OffsetDateTime?,
     /** favorite_area.area. 서비스에서 붙인다. */
     val areaName: String? = null,

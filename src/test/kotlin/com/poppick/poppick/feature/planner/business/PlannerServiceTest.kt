@@ -8,6 +8,7 @@ import com.poppick.poppick.feature.planner.domain.PlannerListTab
 import com.poppick.poppick.feature.planner.domain.PlannerStatus
 import com.poppick.poppick.feature.planner.domain.PlannerSummary
 import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
+import com.poppick.poppick.feature.planner.domain.PlannerTabCounts
 import com.poppick.poppick.feature.planner.implement.PlannerReader
 import com.poppick.poppick.feature.planner.implement.PlannerWriter
 import com.poppick.poppick.global.exception.AppException
@@ -106,6 +107,7 @@ class PlannerServiceTest :
                     totalMin = 180,
                     stopCount = 3,
                     firstStop = null,
+                    confirmedAt = null,
                     canceledAt = null,
                 )
 
@@ -167,6 +169,15 @@ class PlannerServiceTest :
                 visit.encode() shouldBe "2026-10-03T14:00_12"
                 PlannerListCursor.parse(PlannerListTab.UPCOMING, visit.encode()) shouldBe visit
                 PlannerListCursor.parse(PlannerListTab.CANCELED, canceled.encode()) shouldBe canceled
+            }
+        }
+
+        context("counts") {
+            test("오늘(KST)로 reader 를 부르고 결과를 그대로 돌려준다") {
+                val fixture = Fixture()
+                every { fixture.reader.countByTab(memberKey, today) } returns PlannerTabCounts(3, 2, 1)
+
+                fixture.service.counts(memberKey) shouldBe PlannerTabCounts(upcoming = 3, past = 2, canceled = 1)
             }
         }
 

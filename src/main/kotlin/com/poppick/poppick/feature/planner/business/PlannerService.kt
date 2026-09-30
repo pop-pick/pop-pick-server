@@ -15,6 +15,7 @@ import com.poppick.poppick.feature.planner.domain.PlannerListTab
 import com.poppick.poppick.feature.planner.domain.PlannerPolicy
 import com.poppick.poppick.feature.planner.domain.PlannerStatus
 import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
+import com.poppick.poppick.feature.planner.domain.PlannerTabCounts
 import com.poppick.poppick.feature.planner.implement.PlannerReader
 import com.poppick.poppick.feature.planner.implement.PlannerWriter
 import com.poppick.poppick.global.exception.AppException
@@ -85,6 +86,9 @@ class PlannerService(
         val areaNames = areaNames()
         return page.copy(content = page.content.map { it.copy(areaName = areaNames[it.areaId]) })
     }
+
+    /** "내 일정" 탭 라벨 건수(오늘은 KST). */
+    fun counts(memberKey: String): PlannerTabCounts = plannerReader.countByTab(memberKey, LocalDate.now(clock))
 
     /** SCHEDULED → CANCELED(지난 일정 포함), DRAFT → 물리 삭제, CANCELED → INVALID_PLANNER_STATUS. 복구는 없다. */
     fun cancel(

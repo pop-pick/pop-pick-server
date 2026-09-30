@@ -40,6 +40,7 @@ object PlannerFixtures {
         memberKey: String = "member-1",
         status: PlannerStatus = PlannerStatus.DRAFT,
         visitDate: LocalDate = LocalDate.of(2026, 10, 3),
+        confirmedAt: OffsetDateTime? = null,
     ) = Planner(
         id = id,
         memberKey = memberKey,
@@ -56,7 +57,7 @@ object PlannerFixtures {
         totalMin = 200,
         totalTravelM = 1336,
         createdAt = createdAt,
-        confirmedAt = null,
+        confirmedAt = confirmedAt,
         canceledAt = null,
         stops = listOf(stop(1), stop(2), stop(3, last = true)),
     )

@@ -19,6 +19,10 @@ openai:
 planner:
   # 벡터 검색으로 뽑아 LLM 에 넘길 후보 팝업 최대 수
   candidate-limit: 40
+  # 생성 후 이 시간이 지난 DRAFT 는 DraftPurger 가 지운다(생성 시에도 회원의 기존 DRAFT 는 교체된다)
+  draft-ttl-hours: 24
+  # DraftPurger 주기(Asia/Seoul). 매시 15분
+  draft-purge-cron: "0 15 * * * *"
 
 management:
   endpoints:

@@ -6,6 +6,7 @@ import com.poppick.poppick.feature.planner.domain.PlannerListCursor
 import com.poppick.poppick.feature.planner.domain.PlannerListTab
 import com.poppick.poppick.feature.planner.domain.PlannerSummary
 import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
+import com.poppick.poppick.feature.planner.domain.PlannerTabCounts
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import org.springframework.stereotype.Component
@@ -22,6 +23,13 @@ class PlannerReader(
 
     /** 회원의 확정(SCHEDULED) 일정에 들어간 팝업 id. 다음 추천에서 뺀다. */
     fun findScheduledPopupIds(memberKey: String): Set<Long> = plannerRepository.findScheduledPopupIds(memberKey)
+
+    /** "내 일정" 탭별 건수. */
+    @Transactional(readOnly = true)
+    fun countByTab(
+        memberKey: String,
+        today: LocalDate,
+    ): PlannerTabCounts = plannerRepository.countByTab(memberKey, today)
 
     /**
      * "내 일정" 목록 한 페이지. limit + 1 건을 읽어 다음 페이지 유무를 판단한다.
@@ -55,6 +63,7 @@ class PlannerReader(
                     totalMin = planner.totalMin,
                     stopCount = counts[id] ?: 0,
                     firstStop = firstStops[id]?.let { PlannerSummary.FirstStop(it.title, it.imageUrl) },
+                    confirmedAt = planner.confirmedAt,
                     canceledAt = planner.canceledAt,
                 )
             }

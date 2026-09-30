@@ -18,6 +18,9 @@ import com.poppick.poppick.feature.planner.domain.PlannerListTab
 import com.poppick.poppick.feature.planner.domain.PlannerStatus
 import com.poppick.poppick.feature.planner.domain.PlannerSummary
 import com.poppick.poppick.feature.planner.domain.PlannerSummaryPage
+import com.poppick.poppick.feature.planner.domain.PlannerTabCounts
+import com.poppick.poppick.global.exception.AppException
+import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.security.domain.AuthMember
 import com.poppick.poppick.security.entrypoint.JwtAuthenticationEntryPoint
@@ -167,6 +170,7 @@ class PlannerControllerTest {
             .andExpect(jsonPath("$.data.endTime").value("17:20"))
             .andExpect(jsonPath("$.data.totalMin").value(200))
             .andExpect(jsonPath("$.data.createdAt").value("2026-09-28T19:40:00+09:00"))
+            .andExpect(jsonPath("$.data.confirmedAt").isEmpty)
             .andExpect(jsonPath("$.data.stops", hasSize<Any>(3)))
             .andExpect(jsonPath("$.data.stops[0].visitAt").value("14:00"))
             .andExpect(jsonPath("$.data.stops[0].popupId").value(1701))
@@ -204,12 +208,17 @@ class PlannerControllerTest {
     @Test
     fun `POST confirm - SCHEDULED 로 응답`() {
         every { plannerService.confirm("member-1", 12) } returns
-            PlannerDetail(PlannerFixtures.planner(status = PlannerStatus.SCHEDULED), "성수")
+            PlannerDetail(
+                PlannerFixtures.planner(status = PlannerStatus.SCHEDULED, confirmedAt = PlannerFixtures.createdAt.plusMinutes(2)),
+                "성수",
+            )
 
         mockMvc
             .perform(post("/api/v1/planners/12/confirm").asMember())
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.data.status").value("SCHEDULED"))
+            .andExpect(jsonPath("$.data.createdAt").value("2026-09-28T19:40:00+09:00"))
+            .andExpect(jsonPath("$.data.confirmedAt").value("2026-09-28T19:42:00+09:00"))
     }
 
     @Test
@@ -257,6 +266,7 @@ class PlannerControllerTest {
                             totalMin = 199,
                             stopCount = 3,
                             firstStop = PlannerSummary.FirstStop("오래오래 함께가게", null),
+                            confirmedAt = PlannerFixtures.createdAt.plusMinutes(2),
                             canceledAt = null,
                             areaName = "성수",
                         ),
@@ -281,6 +291,7 @@ class PlannerControllerTest {
             .andExpect(jsonPath("$.data.content[0].endTime").value("17:19"))
             .andExpect(jsonPath("$.data.content[0].stopCount").value(3))
             .andExpect(jsonPath("$.data.content[0].firstStop.title").value("오래오래 함께가게"))
+            .andExpect(jsonPath("$.data.content[0].confirmedAt").value("2026-09-28T19:42:00+09:00"))
             .andExpect(jsonPath("$.data.content[0].canceledAt").isEmpty)
             .andExpect(jsonPath("$.data.content[0].stops").doesNotExist())
     }
@@ -344,8 +355,32 @@ class PlannerControllerTest {
     }
 
     @Test
+    fun `GET calendar_ics - 에러는 JSON 으로 응답한다`() {
+        every { plannerService.calendarIcs("member-1", 12) } throws AppException(ErrorType.PLANNER_FORBIDDEN)
+
+        mockMvc
+            .perform(get("/api/v1/planners/12/calendar.ics").asMember())
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.error.errorCode").value("E3001"))
+    }
+
+    @Test
+    fun `GET counts - 탭별 건수`() {
+        every { plannerService.counts("member-1") } returns PlannerTabCounts(upcoming = 3, past = 2, canceled = 2)
+
+        mockMvc
+            .perform(get("/api/v1/planners/counts").asMember())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.resultType").value("SUCCESS"))
+            .andExpect(jsonPath("$.data.upcoming").value(3))
+            .andExpect(jsonPath("$.data.past").value(2))
+            .andExpect(jsonPath("$.data.canceled").value(2))
+    }
+
+    @Test
     fun `6단계 엔드포인트도 미인증이면 401`() {
         listOf(
+            get("/api/v1/planners/counts"),
             get("/api/v1/planners"),
             delete("/api/v1/planners/12"),
             get("/api/v1/planners/12/calendar"),

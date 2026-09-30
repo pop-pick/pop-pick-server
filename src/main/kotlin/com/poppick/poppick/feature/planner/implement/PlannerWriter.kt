@@ -5,18 +5,33 @@ import com.poppick.poppick.feature.planner.dataaccess.repository.PlannerReposito
 import com.poppick.poppick.feature.planner.domain.Planner
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
+private val log = KotlinLogging.logger { }
+
 @Component
 class PlannerWriter(
     private val plannerRepository: PlannerRepository,
 ) {
-    /** planner 1건 + stops N건을 한 트랜잭션으로 저장한다. */
+    /**
+     * 회원의 기존 DRAFT 를 지우고 planner 1건 + stops N건을 저장한다(한 트랜잭션). 회원당 DRAFT 는 최대 1개.
+     * 외부 호출(임베딩 · LLM · 길찾기)이 실패하면 여기까지 오지 않으므로 기존 DRAFT 는 그대로 남는다(의도된 동작).
+     */
     @Transactional
-    fun saveDraft(planner: Planner): Planner = plannerRepository.save(PlannerEntity.from(planner)).toDomain()
+    fun saveDraft(planner: Planner): Planner {
+        val removed = plannerRepository.deleteDrafts(planner.memberKey)
+        val saved = plannerRepository.save(PlannerEntity.from(planner)).toDomain()
+        log.info { "planner draft replaced: memberKey=${planner.memberKey} removed=$removed newId=${saved.id}" }
+        return saved
+    }
+
+    /** created_at < olderThan 인 DRAFT 를 물리 삭제하고 건수를 돌려준다. */
+    @Transactional
+    fun purgeDrafts(olderThan: OffsetDateTime): Long = plannerRepository.deleteDraftsCreatedBefore(olderThan)
 
     /** SCHEDULED 로 바꾸고 confirmed_at 을 기록한다. 상태 · 소유자 검증은 호출 측이 한다. */
     @Transactional

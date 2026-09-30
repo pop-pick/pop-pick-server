@@ -4,7 +4,9 @@ import com.poppick.poppick.feature.planner.dataaccess.entity.PlannerEntity
 import com.poppick.poppick.feature.planner.dataaccess.entity.PlannerPopupEntity
 import com.poppick.poppick.feature.planner.domain.PlannerListCursor
 import com.poppick.poppick.feature.planner.domain.PlannerListTab
+import com.poppick.poppick.feature.planner.domain.PlannerTabCounts
 import java.time.LocalDate
+import java.time.OffsetDateTime
 
 interface CustomPlannerRepository {
     /** planner + stops(visit_order 순) 를 한 번에. */
@@ -29,6 +31,21 @@ interface CustomPlannerRepository {
         today: LocalDate,
         limit: Int,
     ): List<PlannerEntity>
+
+    /** 탭별 건수를 쿼리 한 번으로(CASE 합계 3개). 조건은 findList 와 같고 DRAFT 는 세지 않는다. */
+    fun countByTab(
+        memberKey: String,
+        today: LocalDate,
+    ): PlannerTabCounts
+
+    /**
+     * 회원의 DRAFT 를 전부 물리 삭제(bulk). planner_popup 은 FK CASCADE 로 지워진다. 삭제 건수를 돌려준다.
+     * 영속성 컨텍스트를 비우므로 트랜잭션 안에서 먼저 불러야 한다.
+     */
+    fun deleteDrafts(memberKey: String): Long
+
+    /** created_at < olderThan 인 DRAFT 를 전부 물리 삭제(bulk). 삭제 건수를 돌려준다. */
+    fun deleteDraftsCreatedBefore(olderThan: OffsetDateTime): Long
 
     /** 플래너별 방문지 수. 목록 N+1 을 피하려고 IN 한 번으로. */
     fun countStops(plannerIds: Collection<Long>): Map<Long, Int>
