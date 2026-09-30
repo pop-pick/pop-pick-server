@@ -10,9 +10,11 @@ spring:
 
 openai:
   # 플래너 코스 선정(Responses API). 키 · 임베딩 설정은 프로파일별 yml.
-  chat-model: gpt-4.1-mini
+  chat-model: gpt-6.1-sol
   chat-read-timeout-seconds: 90
-  chat-max-output-tokens: 1024
+  chat-max-output-tokens: 4096
+  # gpt-4.1 계열: temperature 사용 / gpt-5·o 계열: temperature 금지, reasoning.effort 사용 (chat-temperature · chat-reasoning-effort, 미지정 시 생략)
+  chat-reasoning-effort: low
 
 planner:
   # 벡터 검색으로 뽑아 LLM 에 넘길 후보 팝업 최대 수
