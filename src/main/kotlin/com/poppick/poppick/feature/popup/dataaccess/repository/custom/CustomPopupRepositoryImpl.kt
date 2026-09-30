@@ -34,7 +34,8 @@ class CustomPopupRepositoryImpl :
                         .and(
                             popupEntity.startDate.isNull
                                 .or(popupEntity.endDate.isNull)
-                                .or(popupEntity.interestCategoryId.isNull),
+                                .or(popupEntity.interestCategoryId.isNull)
+                                .or(popupEntity.areaId.isNull),
                         ),
                 ),
             ).orderBy(popupEntity.id.asc())
