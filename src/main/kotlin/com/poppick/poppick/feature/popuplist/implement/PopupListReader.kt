@@ -2,6 +2,7 @@ package com.poppick.poppick.feature.popuplist.implement
 
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
+import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.feature.popup.implement.PopupSearchReader
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.paging.Slice
@@ -15,6 +16,7 @@ class PopupListReader(
     fun findPopups(
         keyword: String?,
         today: LocalDate,
+        sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
-    ): Slice<Popup> = popupSearchReader.findPopups(keyword, today, cursorable)
+    ): Slice<Popup> = popupSearchReader.findPopups(keyword, today, sort, cursorable)
 }
