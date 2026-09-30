@@ -14,6 +14,7 @@ enum class ErrorType(
     INVALID_PAGING_SIZE(HttpStatus.BAD_REQUEST, ErrorCode.E400, "잘못된 페이징 크기입니다.", LogLevel.WARN),
     INVALID_PAGING_PARAMETER(HttpStatus.BAD_REQUEST, ErrorCode.E400, "페이징 요소가 누락되었습니다.", LogLevel.WARN),
     ALREADY_REGISTERED(HttpStatus.BAD_REQUEST, ErrorCode.E400, "이미 데이터가 존재합니다.", LogLevel.WARN),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, ErrorCode.E400, "요청 값이 올바르지 않습니다.", LogLevel.WARN),
 
     // Security
     REQUIRED_AUTH(HttpStatus.UNAUTHORIZED, ErrorCode.E1000, "인증이 필요합니다.", LogLevel.WARN),
@@ -34,4 +35,19 @@ enum class ErrorType(
     // Member
     INVALID_MEMBER_KEY(HttpStatus.BAD_REQUEST, ErrorCode.E2000, "멤버 key가 유효하지 않습니다.", LogLevel.WARN),
     INVALID_EMAIL(HttpStatus.BAD_REQUEST, ErrorCode.E1002, "이메일이 유효하지 않습니다.", LogLevel.WARN),
+
+    // Planner
+    PLANNER_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.E3000, "플래너를 찾을 수 없어요.", LogLevel.WARN),
+    PLANNER_FORBIDDEN(HttpStatus.FORBIDDEN, ErrorCode.E3001, "이 플래너에 접근할 수 없어요.", LogLevel.WARN),
+    INVALID_VISIT_DATE(HttpStatus.BAD_REQUEST, ErrorCode.E3002, "방문일은 오늘부터 30일 이내로 골라주세요.", LogLevel.WARN),
+    INVALID_START_TIME(HttpStatus.BAD_REQUEST, ErrorCode.E3003, "시작 시각은 08:00~20:00 사이, 오늘이면 지금부터 30분 이후로 골라주세요.", LogLevel.WARN),
+    INSUFFICIENT_POPUPS(
+        HttpStatus.UNPROCESSABLE_CONTENT,
+        ErrorCode.E3004,
+        "선택한 지역에 추천할 팝업이 충분하지 않아요. 다른 지역이나 날짜를 골라주세요.",
+        LogLevel.INFO,
+    ),
+    INVALID_PLANNER_STATUS(HttpStatus.CONFLICT, ErrorCode.E3005, "지금 상태에서는 할 수 없는 요청이에요.", LogLevel.WARN),
+    GENERATION_FAILED(HttpStatus.BAD_GATEWAY, ErrorCode.E3006, "코스를 만들지 못했어요. 잠시 후 다시 시도해주세요.", LogLevel.WARN),
+    ROUTE_FAILED(HttpStatus.BAD_GATEWAY, ErrorCode.E3007, "이동 경로를 찾지 못했어요. 잠시 후 다시 시도해주세요.", LogLevel.WARN),
 }

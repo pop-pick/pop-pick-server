@@ -18,6 +18,8 @@ data class Popup(
     val brand: String? = null,
     /** 관심 카테고리 id(interest_category FK). 1 캐릭터/IP · 2 패션/브랜드 · 3 F&B · 4 전시/아트 · 5 뷰티 · 6 게임/엔터 · 7 라이프스타일 · 8 기타. 보강 전엔 NULL. */
     val interestCategoryId: Int? = null,
+    /** 상권 id(favorite_area FK). 보강 시 LLM 이 분류. 어느 상권에도 안 들면 NULL. 플래너 후보 검색의 pre-filter 키. */
+    val areaId: Int? = null,
     /** 팝업 소개 문구. */
     val description: String? = null,
     /** 세부 키워드 목록. */

@@ -8,6 +8,22 @@ spring:
   jpa:
     open-in-view: false
 
+openai:
+  # 플래너 코스 선정(Responses API). 키 · 임베딩 설정은 프로파일별 yml.
+  chat-model: gpt-6.1-sol
+  chat-read-timeout-seconds: 90
+  chat-max-output-tokens: 4096
+  # gpt-4.1 계열: temperature 사용 / gpt-5·o 계열: temperature 금지, reasoning.effort 사용 (chat-temperature · chat-reasoning-effort, 미지정 시 생략)
+  chat-reasoning-effort: low
+
+planner:
+  # 벡터 검색으로 뽑아 LLM 에 넘길 후보 팝업 최대 수
+  candidate-limit: 40
+  # 생성 후 이 시간이 지난 DRAFT 는 DraftPurger 가 지운다(생성 시에도 회원의 기존 DRAFT 는 교체된다)
+  draft-ttl-hours: 24
+  # DraftPurger 주기(Asia/Seoul). 매시 15분
+  draft-purge-cron: "0 15 * * * *"
+
 management:
   endpoints:
     web:

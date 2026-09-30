@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.feature.member.domain.InterestCategory
+import com.poppick.poppick.feature.member.implement.FavoriteAreaReader
 import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.Fixtures
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityAgentClient
@@ -15,6 +16,7 @@ import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import java.time.Duration
 import java.time.LocalDate
@@ -32,6 +34,7 @@ class PopupEnricherTest :
             val popupReader = mockk<PopupReader>()
             val popupWriter = mockk<PopupWriter>()
             val perplexityAgentClient = mockk<PerplexityAgentClient>()
+            val popupEnrichmentMerger = spyk(PopupEnrichmentMerger())
             val enricher =
                 PopupEnricher(
                     popupReader = popupReader,
@@ -41,8 +44,12 @@ class PopupEnricherTest :
                             every { findAll() } returns
                                 listOf(InterestCategory(1, "캐릭터/IP"))
                         },
+                    favoriteAreaReader =
+                        mockk<FavoriteAreaReader> {
+                            every { findAll() } returns Fixtures.favoriteAreas
+                        },
                     perplexityAgentClient = perplexityAgentClient,
-                    popupEnrichmentMerger = PopupEnrichmentMerger(),
+                    popupEnrichmentMerger = popupEnrichmentMerger,
                     rateLimiter = mockk(relaxed = true),
                     collectionProperties = properties,
                     executor = sameThread,
@@ -101,6 +108,19 @@ class PopupEnricherTest :
             report.failed shouldBe 2
             report.costUsd shouldBe (0.03 plusOrMinus 1e-9)
             report.searchCalls shouldBe 4
+        }
+
+        test("favorite_area 를 이름 → id 맵으로 만들어 merge 에 넘긴다") {
+            val fixture = Fixture()
+            fixture.targets(1)
+            every { fixture.perplexityAgentClient.enrich(any(), any()) } returns
+                PerplexityEnrichResult(PopupEnrichment(found = true, matchesPlace = true, area = "홍대"), emptyList())
+            val areas = mapOf("성수" to 1, "여의도" to 2, "홍대" to 3, "잠실" to 4, "용산" to 5, "종로" to 6, "강남" to 7)
+
+            fixture.enricher.enrich(today)
+
+            verify { fixture.popupEnrichmentMerger.merge(any(), any(), any(), areas, any()) }
+            verify { fixture.popupWriter.save(match { it.areaId == 3 }) }
         }
 
         test("4xx 가 아닌 실패(재시도 소진 · 파싱 실패)는 세지 않는다") {

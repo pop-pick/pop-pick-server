@@ -14,6 +14,8 @@ data class PopupEnrichment(
     val brand: String? = null,
     /** interest_category.category 값 중 하나. */
     val interestCategory: String? = null,
+    /** favorite_area.area 값 중 하나. 상권 밖이면 null. */
+    val area: String? = null,
     val description: String? = null,
     val tags: List<String>? = null,
     /** YYYY-MM-DD */

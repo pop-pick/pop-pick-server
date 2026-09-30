@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popup.implement
 
+import com.poppick.poppick.feature.popup.Fixtures
 import com.poppick.poppick.feature.popup.LogCapture
 import com.poppick.poppick.feature.popup.domain.PerplexityEnrichResult
 import com.poppick.poppick.feature.popup.domain.PlaceResolution
@@ -23,6 +24,7 @@ class PopupEnrichmentMergerTest :
             listOf("캐릭터/IP", "패션/브랜드", "F&B", "전시/아트", "뷰티", "게임/엔터", "라이프스타일", "기타")
                 .mapIndexed { index, name -> name to index + 1 }
                 .toMap()
+        val areas = Fixtures.favoriteAreas.associate { it.area to it.id }
 
         val popup =
             Popup(
@@ -48,6 +50,7 @@ class PopupEnrichmentMergerTest :
                 title = "망그러진 곰 팝업스토어",
                 brand = "망그러진 곰",
                 interestCategory = "캐릭터/IP",
+                area = "성수",
                 description = "첫 오프라인 팝업.",
                 tags = listOf("캐릭터", "굿즈"),
                 startDate = "2026-09-10",
@@ -66,7 +69,7 @@ class PopupEnrichmentMergerTest :
             enrichment: PopupEnrichment,
             base: Popup = popup,
             urls: List<String> = searchUrls,
-        ) = merger.merge(base, PerplexityEnrichResult(enrichment, urls), categories, now)
+        ) = merger.merge(base, PerplexityEnrichResult(enrichment, urls), categories, areas, now)
 
         // 핵심 필드가 모두 채워진 팝업
         val complete = merge(found)
@@ -286,6 +289,48 @@ class PopupEnrichmentMergerTest :
 
             test("새 값이 있으면 새 값을 쓴다") {
                 merge(empty.copy(openingHours = "화~일 10:30~22:00, 월 휴무"), base = complete).openingHours shouldBe "화~일 10:30~22:00, 월 휴무"
+            }
+        }
+
+        context("상권(area)") {
+            fun areaWarnings(
+                enrichment: PopupEnrichment,
+                base: Popup = popup,
+            ) = LogCapture(PopupEnrichmentMerger::class.java.name).use { capture ->
+                merge(enrichment, base = base) to capture.messages().filter { "알 수 없는 상권" in it }
+            }
+
+            test("상권 이름을 favorite_area id 로 매핑한다") {
+                complete.areaId shouldBe 1
+                merge(found.copy(area = "용산")).areaId shouldBe 5
+            }
+
+            test("강남은 7 로 매핑된다") {
+                merge(found.copy(area = "강남")).areaId shouldBe 7
+            }
+
+            test("응답이 null 이면 기존 areaId 를 유지한다") {
+                merge(found.copy(area = null), base = complete).areaId shouldBe 1
+                merge(found.copy(area = null)).areaId.shouldBeNull()
+            }
+
+            test("알 수 없는 이름이면 기존 값을 유지하고 WARN 을 남긴다") {
+                val (merged, logs) = areaWarnings(found.copy(area = "판교"), base = complete)
+
+                merged.areaId shouldBe 1
+                logs shouldBe listOf("enrich: 알 수 없는 상권 popupId=1 area=판교")
+            }
+
+            test("found=false 면 areaId 는 바뀌지 않는다") {
+                merge(notFound.copy(area = "홍대"), base = complete).areaId shouldBe 1
+                merge(notFound.copy(area = "홍대")).areaId.shouldBeNull()
+            }
+
+            test("areaId 가 비어도 핵심 필드가 차 있으면 retry 는 그대로") {
+                val merged = merge(found.copy(area = null))
+
+                merged.areaId.shouldBeNull()
+                merged.enrichRetryCount shouldBe 0
             }
         }
 

@@ -20,6 +20,7 @@ private val log = KotlinLogging.logger { }
  *   재보강 대상은 이 카운터와 핵심 필드 공백으로만 판단하므로(findEnrichTargets) retry 갱신을 빠뜨리지 않는다.
  * 장소 필드(placeId · placeName · address* · 좌표 · placeResolution) 와 source · externalId · rawPayload 는 절대 덮지 않는다.
  * 재보강은 결과 편차가 커서, 새 응답이 비어 있는 필드는 기존 값을 유지한다(reservationType 은 UNKNOWN 이면 유지).
+ * 상권(areaId)은 핵심 필드가 아니라 retry 판정에 넣지 않는다.
  */
 @Component
 class PopupEnrichmentMerger {
@@ -38,6 +39,7 @@ class PopupEnrichmentMerger {
         popup: Popup,
         result: PerplexityEnrichResult,
         categories: Map<String, Int>,
+        areas: Map<String, Int>,
         now: OffsetDateTime,
     ): Popup {
         val enrichment = result.enrichment
@@ -49,6 +51,7 @@ class PopupEnrichmentMerger {
 
         val (startDate, endDate) = mergePeriod(popup, enrichment)
         val interestCategoryId = enrichment.interestCategory?.let { categories[it] } ?: popup.interestCategoryId
+        val areaId = mapArea(popup.id, enrichment.area, areas) ?: popup.areaId
 
         val merged =
             popup.copy(
@@ -62,6 +65,7 @@ class PopupEnrichmentMerger {
                         ?.take(MAX_TAGS)
                         ?.takeIf { it.isNotEmpty() } ?: popup.tags,
                 interestCategoryId = interestCategoryId,
+                areaId = areaId,
                 startDate = startDate,
                 endDate = endDate,
                 openingHours = enrichment.openingHours.nonBlank() ?: popup.openingHours,
@@ -130,6 +134,19 @@ class PopupEnrichmentMerger {
         endDate.monthValue == 12 &&
         endDate.dayOfMonth == 31 &&
         ChronoUnit.DAYS.between(startDate, endDate) > YEAR_END_SUSPECT_DAYS
+
+    // 스키마 enum 으로 막혀 있지만, favorite_area 에 없는 이름이 오면 WARN 후 무시한다.
+    private fun mapArea(
+        popupId: Long?,
+        area: String?,
+        areas: Map<String, Int>,
+    ): Int? {
+        if (area == null) return null
+        return areas[area] ?: run {
+            log.warn { "enrich: 알 수 없는 상권 popupId=$popupId area=$area" }
+            null
+        }
+    }
 
     // 모델이 지어낸 URL 을 막기 위해 검색 결과에 정확히 있거나 같은 host 의 URL 이 있을 때만 채택한다.
     private fun verifiedReservationUrl(
