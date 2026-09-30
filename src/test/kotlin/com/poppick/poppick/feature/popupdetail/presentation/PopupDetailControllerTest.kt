@@ -37,6 +37,7 @@ private val NULLABLE_FIELDS =
         "description",
         "imageUrls",
         "interestCategoryId",
+        "interestCategoryName",
         "startDate",
         "endDate",
         "openingHours",
@@ -60,7 +61,7 @@ private fun JsonNode.strings() = toList().map { it.asString() }
  */
 class PopupDetailControllerTest :
     FunSpec({
-        val service = mockk<PopupDetailService>()
+        val service = mockk<PopupDetailService> { every { findCategoryNames() } returns mapOf(1 to "캐릭터/IP") }
         val mockMvc: MockMvc =
             MockMvcBuilders
                 .standaloneSetup(PopupDetailController(service))
@@ -106,6 +107,7 @@ class PopupDetailControllerTest :
                 this["imageUrls"].strings() shouldBe
                     listOf("https://img.example.com/1.jpg", "https://img.example.com/2.jpg")
                 this["interestCategoryId"].asInt() shouldBe 1
+                this["interestCategoryName"].asString() shouldBe "캐릭터/IP"
                 this["startDate"].asString() shouldBe "2026-09-10"
                 this["endDate"].asString() shouldBe "2026-10-12"
                 this["openingHours"].asString() shouldBe "매일 11:00~20:00, 월 휴무"
@@ -120,6 +122,15 @@ class PopupDetailControllerTest :
                 this["tags"].strings() shouldBe listOf("캐릭터", "굿즈", "포토존")
                 this["viewCount"].asLong() shouldBe 0L
             }
+        }
+
+        test("카테고리가 없는 팝업은 interestCategoryName 이 null 이다") {
+            every { service.findPopupDetail(3L, any()) } returns PopupDetailFixtures.fullPopup(id = 3L).copy(interestCategoryId = null)
+
+            val data = mockMvc.getJson("/api/v1/popups/3", 200)["data"]
+
+            data["interestCategoryId"].isNull shouldBe true
+            data["interestCategoryName"].isNull shouldBe true
         }
 
         test("응답 viewCount 는 서비스가 돌려준 조회수(올린 뒤 값)다") {
@@ -179,7 +190,7 @@ class PopupDetailControllerTest :
             viewer.captured shouldBe PopupViewer.anonymous("203.0.113.7", null, "127.0.0.1", "test-agent")
         }
 
-        test("응답 data 는 PopupDetailResponse 의 21개 필드(기존 20개 + viewCount)만 담고 내부 필드는 노출하지 않는다") {
+        test("응답 data 는 PopupDetailResponse 의 22개 필드(기존 20개 + viewCount · interestCategoryName)만 담고 내부 필드는 노출하지 않는다") {
             every { service.findPopupDetail(1L, any()) } returns PopupDetailFixtures.fullPopup(id = 1L)
 
             val json = mockMvc.getJson("/api/v1/popups/1", 200)

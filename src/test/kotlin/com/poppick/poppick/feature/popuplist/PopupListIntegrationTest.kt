@@ -253,6 +253,16 @@ class PopupListIntegrationTest {
         top3.forEach { it.isVisible() shouldBe true }
     }
 
+    @Test
+    fun `카테고리 이름은 interest_category 전체이고 노출 팝업의 카테고리 id 는 모두 이름을 찾을 수 있다`() {
+        val names = popupListService.findCategoryNames()
+        val categoryIds = fetchAll(limit = 50).mapNotNull { it.interestCategoryId }.toSet()
+
+        println("[카테고리 이름] $names, 노출 팝업 카테고리 id=$categoryIds")
+        assumeTrue(names.isNotEmpty(), "interest_category 가 비어 있음")
+        categoryIds.filterNot { it in names } shouldBe emptyList()
+    }
+
     private fun fetchAll(
         limit: Int,
         from: PopupSearchCursor.Latest? = null,

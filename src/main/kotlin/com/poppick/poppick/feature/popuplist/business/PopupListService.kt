@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popuplist.business
 
+import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
@@ -12,6 +13,7 @@ import java.time.LocalDate
 @Service
 class PopupListService(
     private val popupListReader: PopupListReader,
+    private val interestCategoryReader: InterestCategoryReader,
 ) {
     companion object {
         /** 홈 "지금 인기 있는 팝업" 개수. */
@@ -32,4 +34,7 @@ class PopupListService(
         popupListReader
             .findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, Cursorable(null, POPULAR_POPUP_COUNT))
             .content
+
+    /** 카테고리 id → 이름. 카드 뱃지 표시용이며, 요청마다 한 번만 조회해 모든 카드에 쓴다. */
+    fun findCategoryNames(): Map<Int, String> = interestCategoryReader.findAll().associate { it.id to it.category }
 }

@@ -42,11 +42,21 @@ class PopupListControllerTest :
                 .setCustomArgumentResolvers(CursorableArgumentResolver())
                 .build()
 
-        beforeEach { clearMocks(service) }
+        beforeEach {
+            clearMocks(service)
+            every { service.findCategoryNames() } returns mapOf(1 to "캐릭터/IP", 5 to "뷰티")
+        }
 
         val popups =
             listOf(
-                Popup(id = 1720, source = SourceType.KAKAO_MAP, title = "팝업 1720", startDate = LocalDate.of(2026, 9, 25), viewCount = 10),
+                Popup(
+                    id = 1720,
+                    source = SourceType.KAKAO_MAP,
+                    title = "팝업 1720",
+                    startDate = LocalDate.of(2026, 9, 25),
+                    viewCount = 10,
+                    interestCategoryId = 1,
+                ),
                 Popup(id = 1715, source = SourceType.KAKAO_MAP, title = "팝업 1715", startDate = LocalDate.of(2026, 9, 20), viewCount = 7),
             )
 
@@ -159,6 +169,17 @@ class PopupListControllerTest :
             verify(exactly = 1) { service.findPopups("성수", PopupSortType.POPULAR, any()) }
         }
 
+        test("목록 카드에 카테고리 이름을 담고(없으면 null), 이름 조회는 요청당 1번이다") {
+            stubService()
+
+            val content = mockMvc.getJson("/api/v1/popups?sort=popular", 200)["data"]["content"].toList()
+
+            content.map { it["interestCategoryId"].takeUnless { id -> id.isNull }?.asInt() } shouldBe listOf(1, null)
+            content[0]["interestCategoryName"].asString() shouldBe "캐릭터/IP"
+            content[1]["interestCategoryName"].isNull shouldBe true
+            verify(exactly = 1) { service.findCategoryNames() }
+        }
+
         test("limit 범위를 벗어나면 기존과 같이 400") {
             mockMvc.getJson("/api/v1/popups?sort=popular&limit=51", 400)["error"]["errorCode"].asString() shouldBe "E400"
         }
@@ -173,9 +194,19 @@ class PopupListControllerTest :
                 json["data"].isArray shouldBe true
                 json["data"].toList().map { it["popupId"].asLong() } shouldBe listOf(1720L, 1715L)
                 json["data"][0].propertyNames().toSet() shouldBe
-                    setOf("popupId", "imageUrl", "interestCategoryId", "title", "endDate", "reservationType")
+                    setOf("popupId", "imageUrl", "interestCategoryId", "interestCategoryName", "title", "endDate", "reservationType")
                 verify(exactly = 1) { service.findPopularPopups() }
                 verify(exactly = 0) { service.findPopups(any(), any(), any()) }
+            }
+
+            test("인기 카드에도 카테고리 이름을 담고, 이름 조회는 요청당 1번이다") {
+                every { service.findPopularPopups() } returns popups
+
+                val data = mockMvc.getJson("/api/v1/popups/popular", 200)["data"]
+
+                data[0]["interestCategoryName"].asString() shouldBe "캐릭터/IP"
+                data[1]["interestCategoryName"].isNull shouldBe true
+                verify(exactly = 1) { service.findCategoryNames() }
             }
 
             test("노출 대상이 없으면 빈 배열") {
@@ -196,6 +227,7 @@ class PopupListControllerTest :
                 val detailService = mockk<PopupDetailService>()
                 every { service.findPopularPopups() } returns popups
                 every { detailService.findPopupDetail(1715L, any()) } returns popups[1]
+                every { detailService.findCategoryNames() } returns emptyMap()
                 val bothControllers =
                     MockMvcBuilders
                         .standaloneSetup(PopupListController(service), PopupDetailController(detailService))

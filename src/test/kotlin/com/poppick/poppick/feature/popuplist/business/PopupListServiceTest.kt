@@ -1,5 +1,7 @@
 package com.poppick.poppick.feature.popuplist.business
 
+import com.poppick.poppick.feature.member.domain.InterestCategory
+import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
@@ -33,7 +35,7 @@ class PopupListServiceTest :
                     }
                 }
 
-            PopupListService(reader).findPopularPopups() shouldBe popups
+            PopupListService(reader, mockk()).findPopularPopups() shouldBe popups
 
             verify(exactly = 1) { reader.findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
         }
@@ -46,7 +48,7 @@ class PopupListServiceTest :
                         Slice(popups, top3Cursorable, hasNext = false)
                 }
 
-            PopupListService(reader).findPopularPopups() shouldBe popups
+            PopupListService(reader, mockk()).findPopularPopups() shouldBe popups
         }
 
         test("노출 대상이 없으면 빈 목록") {
@@ -56,10 +58,21 @@ class PopupListServiceTest :
                         Slice(emptyList(), top3Cursorable, hasNext = false)
                 }
 
-            PopupListService(reader).findPopularPopups() shouldBe emptyList()
+            PopupListService(reader, mockk()).findPopularPopups() shouldBe emptyList()
         }
 
         test("인기 팝업 개수는 3") {
             PopupListService.POPULAR_POPUP_COUNT shouldBe 3
+        }
+
+        test("카테고리 이름은 전체를 한 번만 조회해 id → 이름으로 돌려준다") {
+            val categoryReader =
+                mockk<InterestCategoryReader> {
+                    every { findAll() } returns listOf(InterestCategory(1, "캐릭터/IP"), InterestCategory(5, "뷰티"))
+                }
+
+            PopupListService(mockk(), categoryReader).findCategoryNames() shouldBe mapOf(1 to "캐릭터/IP", 5 to "뷰티")
+
+            verify(exactly = 1) { categoryReader.findAll() }
         }
     })

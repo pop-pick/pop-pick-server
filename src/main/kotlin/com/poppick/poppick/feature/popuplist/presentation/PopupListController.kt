@@ -75,7 +75,9 @@ class PopupListController(
         val cursor = cursorable.cursor?.takeIf { it.isNotBlank() }?.let { PopupListPageResponse.decodeCursor(it, sortType) }
         val slice = popupListService.findPopups(keyword, sortType, Cursorable(cursor, cursorable.limit))
 
-        return ResponseEntity.ok(ApiResponse.success(PopupListPageResponse.from(slice, sortType)))
+        val categoryNames = popupListService.findCategoryNames()
+
+        return ResponseEntity.ok(ApiResponse.success(PopupListPageResponse.from(slice, sortType, categoryNames)))
     }
 
     @Operation(
@@ -87,6 +89,10 @@ class PopupListController(
                 "이 API 호출로는 조회수가 오르지 않는다(조회수는 상세 조회에서만 오른다).",
     )
     @GetMapping("/popular")
-    fun findPopularPopups(): ResponseEntity<ApiResponse<List<PopupListResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(popupListService.findPopularPopups().map { PopupListResponse.from(it) }))
+    fun findPopularPopups(): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
+        val popups = popupListService.findPopularPopups()
+        val categoryNames = popupListService.findCategoryNames()
+
+        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames) }))
+    }
 }

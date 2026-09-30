@@ -41,10 +41,10 @@ class PopupDetailController(
         request: HttpServletRequest,
     ): ResponseEntity<ApiResponse<PopupDetailResponse>> {
         val viewer = authMember?.let { PopupViewer.member(it.member.memberKey) } ?: request.anonymousViewer()
+        val popup = popupDetailService.findPopupDetail(popupId, viewer)
+        val categoryNames = popupDetailService.findCategoryNames()
 
-        return ResponseEntity.ok(
-            ApiResponse.success(PopupDetailResponse.from(popupDetailService.findPopupDetail(popupId, viewer))),
-        )
+        return ResponseEntity.ok(ApiResponse.success(PopupDetailResponse.from(popup, categoryNames)))
     }
 
     private fun HttpServletRequest.anonymousViewer() =

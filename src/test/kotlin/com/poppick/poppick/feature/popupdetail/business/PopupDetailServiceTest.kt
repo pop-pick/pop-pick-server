@@ -1,5 +1,7 @@
 package com.poppick.poppick.feature.popupdetail.business
 
+import com.poppick.poppick.feature.member.domain.InterestCategory
+import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popupdetail.PopupDetailFixtures
 import com.poppick.poppick.feature.popupdetail.domain.PopupViewer
 import com.poppick.poppick.feature.popupdetail.implement.PopupDetailReader
@@ -23,7 +25,7 @@ class PopupDetailServiceTest :
             val reader = mockk<PopupDetailReader> { every { read(1L) } returns popup }
             val counter = mockk<PopupViewCounter> { every { count(1L, viewer) } returns 42L }
 
-            PopupDetailService(reader, counter).findPopupDetail(1L, viewer) shouldBe popup.copy(viewCount = 42L)
+            PopupDetailService(reader, counter, mockk()).findPopupDetail(1L, viewer) shouldBe popup.copy(viewCount = 42L)
 
             verifyOrder {
                 reader.read(1L)
@@ -36,16 +38,27 @@ class PopupDetailServiceTest :
             val reader = mockk<PopupDetailReader> { every { read(1L) } returns popup }
             val counter = mockk<PopupViewCounter> { every { count(1L, viewer) } returns null }
 
-            PopupDetailService(reader, counter).findPopupDetail(1L, viewer) shouldBe popup
+            PopupDetailService(reader, counter, mockk()).findPopupDetail(1L, viewer) shouldBe popup
         }
 
         test("Reader 의 NOT_FOUND_DATA 예외는 그대로 전파하고 조회수는 반영하지 않는다") {
             val reader = mockk<PopupDetailReader> { every { read(999L) } throws AppException(ErrorType.NOT_FOUND_DATA) }
             val counter = mockk<PopupViewCounter>()
 
-            val exception = shouldThrow<AppException> { PopupDetailService(reader, counter).findPopupDetail(999L, viewer) }
+            val exception = shouldThrow<AppException> { PopupDetailService(reader, counter, mockk()).findPopupDetail(999L, viewer) }
 
             exception.errorType shouldBe ErrorType.NOT_FOUND_DATA
             verify(exactly = 0) { counter.count(any(), any()) }
+        }
+
+        test("카테고리 이름은 전체를 한 번만 조회해 id → 이름으로 돌려준다") {
+            val categoryReader =
+                mockk<InterestCategoryReader> {
+                    every { findAll() } returns listOf(InterestCategory(1, "캐릭터/IP"), InterestCategory(3, "F&B"))
+                }
+
+            PopupDetailService(mockk(), mockk(), categoryReader).findCategoryNames() shouldBe mapOf(1 to "캐릭터/IP", 3 to "F&B")
+
+            verify(exactly = 1) { categoryReader.findAll() }
         }
     })

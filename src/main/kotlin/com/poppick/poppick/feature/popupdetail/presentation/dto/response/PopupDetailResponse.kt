@@ -13,6 +13,8 @@ data class PopupDetailResponse(
     val description: String?,
     val imageUrls: List<String>?,
     val interestCategoryId: Int?,
+    /** 카테고리 이름(뱃지 표시용). 카테고리가 없거나 알 수 없는 id 면 null. */
+    val interestCategoryName: String?,
     val startDate: LocalDate?,
     val endDate: LocalDate?,
     val openingHours: String?,
@@ -31,29 +33,33 @@ data class PopupDetailResponse(
     val viewCount: Long,
 ) {
     companion object {
-        fun from(popup: Popup) =
-            PopupDetailResponse(
-                popupId = requireNotNull(popup.id),
-                title = popup.title,
-                brand = popup.brand,
-                description = popup.description,
-                imageUrls = popup.imageUrls,
-                interestCategoryId = popup.interestCategoryId,
-                startDate = popup.startDate,
-                endDate = popup.endDate,
-                openingHours = popup.openingHours,
-                entryFee = popup.entryFee,
-                addressRoad = popup.addressRoad,
-                addressJibun = popup.addressJibun,
-                latitude = popup.latitude,
-                longitude = popup.longitude,
-                reservationType = popup.reservationType,
-                reservationUrl = popup.reservationUrl,
-                reservationOpenAt = popup.reservationOpenAt,
-                source = popup.source,
-                sourceUrls = popup.sourceUrls,
-                tags = popup.tags,
-                viewCount = popup.viewCount,
-            )
+        /** categoryNames 는 카테고리 id → 이름. */
+        fun from(
+            popup: Popup,
+            categoryNames: Map<Int, String>,
+        ) = PopupDetailResponse(
+            popupId = requireNotNull(popup.id),
+            title = popup.title,
+            brand = popup.brand,
+            description = popup.description,
+            imageUrls = popup.imageUrls,
+            interestCategoryId = popup.interestCategoryId,
+            interestCategoryName = popup.interestCategoryId?.let { categoryNames[it] },
+            startDate = popup.startDate,
+            endDate = popup.endDate,
+            openingHours = popup.openingHours,
+            entryFee = popup.entryFee,
+            addressRoad = popup.addressRoad,
+            addressJibun = popup.addressJibun,
+            latitude = popup.latitude,
+            longitude = popup.longitude,
+            reservationType = popup.reservationType,
+            reservationUrl = popup.reservationUrl,
+            reservationOpenAt = popup.reservationOpenAt,
+            source = popup.source,
+            sourceUrls = popup.sourceUrls,
+            tags = popup.tags,
+            viewCount = popup.viewCount,
+        )
     }
 }

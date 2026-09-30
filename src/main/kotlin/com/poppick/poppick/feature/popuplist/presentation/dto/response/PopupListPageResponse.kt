@@ -33,8 +33,9 @@ data class PopupListPageResponse(
         fun from(
             slice: Slice<Popup>,
             sort: PopupSortType,
+            categoryNames: Map<Int, String>,
         ) = PopupListPageResponse(
-            content = slice.content.map { PopupListResponse.from(it) },
+            content = slice.content.map { PopupListResponse.from(it, categoryNames) },
             hasNext = slice.hasNext,
             nextCursor =
                 slice.content

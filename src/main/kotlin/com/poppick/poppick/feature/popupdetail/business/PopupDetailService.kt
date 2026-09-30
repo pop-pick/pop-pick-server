@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popupdetail.business
 
+import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popupdetail.domain.PopupViewer
 import com.poppick.poppick.feature.popupdetail.implement.PopupDetailReader
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service
 class PopupDetailService(
     private val popupDetailReader: PopupDetailReader,
     private val popupViewCounter: PopupViewCounter,
+    private val interestCategoryReader: InterestCategoryReader,
 ) {
     /**
      * 팝업을 읽은 뒤(없으면 NOT_FOUND_DATA, 조회수 증가 없음) 조회수를 반영한다.
@@ -24,4 +26,7 @@ class PopupDetailService(
         val viewCount = popupViewCounter.count(popupId, viewer) ?: return popup
         return popup.copy(viewCount = viewCount)
     }
+
+    /** 카테고리 id → 이름. 상세 뱃지 표시용. */
+    fun findCategoryNames(): Map<Int, String> = interestCategoryReader.findAll().associate { it.id to it.category }
 }
