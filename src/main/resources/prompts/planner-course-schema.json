@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "stops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "popupId": { "type": "integer" },
+          "stayMin": { "type": "integer" },
+          "reason": { "type": "string" }
+        },
+        "required": ["popupId", "stayMin", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["title", "summary", "stops"],
+  "additionalProperties": false
+}

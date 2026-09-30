@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.config.properties.CollectionProperties
+import com.poppick.poppick.feature.member.implement.FavoriteAreaReader
 import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityAgentClient
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityClientException
@@ -34,6 +35,7 @@ class PopupEnricher(
     private val popupReader: PopupReader,
     private val popupWriter: PopupWriter,
     private val interestCategoryReader: InterestCategoryReader,
+    private val favoriteAreaReader: FavoriteAreaReader,
     private val perplexityAgentClient: PerplexityAgentClient,
     private val popupEnrichmentMerger: PopupEnrichmentMerger,
     private val rateLimiter: RateLimiter,
@@ -57,6 +59,7 @@ class PopupEnricher(
                 collectionProperties.enrichLimit,
             )
         val categories = interestCategoryReader.findAll().associate { it.category to it.id }
+        val areas = favoriteAreaReader.findAll().associate { it.area to it.id }
 
         // 동시 실행 수만큼만 제출해 두고, 제출 직전마다 4xx 연속 횟수를 검사한다(실행 중 태스크는 그대로 끝낸다).
         val inFlight = Semaphore(collectionProperties.perplexity.threads)
@@ -79,7 +82,7 @@ class PopupEnricher(
             futures +=
                 submit(executor) {
                     try {
-                        enrichOne(id, today, categories) { usageTally.add(id, it) }.also { consecutiveClientErrors.set(0) }
+                        enrichOne(id, today, categories, areas) { usageTally.add(id, it) }.also { consecutiveClientErrors.set(0) }
                     } catch (e: PerplexityClientException) {
                         if (e.isClientError) consecutiveClientErrors.incrementAndGet()
                         e.usage?.let { usageTally.add(id, it) }
@@ -155,13 +158,14 @@ class PopupEnricher(
         popupId: Long,
         today: LocalDate,
         categories: Map<String, Int>,
+        areas: Map<String, Int>,
         onUsage: (PerplexityUsage) -> Unit = {},
     ): EnrichOutcome {
         rateLimiter.acquire()
         val popup = popupReader.findById(popupId)
         val result = perplexityAgentClient.enrich(EnrichmentPrompt.build(popup, today), SearchRecency.of(popup))
         onUsage(result.usage)
-        val merged = popupEnrichmentMerger.merge(popup, result, categories, OffsetDateTime.now(KST))
+        val merged = popupEnrichmentMerger.merge(popup, result, categories, areas, OffsetDateTime.now(KST))
         return EnrichOutcome(popupWriter.save(merged), result.enrichment.describesPlace())
     }
 }

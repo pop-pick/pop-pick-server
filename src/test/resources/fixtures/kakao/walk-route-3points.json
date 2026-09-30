@@ -1,0 +1,21 @@
+{
+  "status": "OK",
+  "route": {
+    "properties": { "totalDistance": 1100, "totalTime": 990, "landingUrl": "https://map.kakao.com/..." },
+    "legs": [
+      {
+        "properties": { "distance": 480, "time": 432 },
+        "steps": [
+          { "properties": { "distance": 200, "time": 180, "guidance": "직진" }, "path": { "points": [[127.05183, 37.54385], [127.0530, 37.5437], [127.0530, 37.5437]] } },
+          { "properties": { "distance": 280, "time": 252, "guidance": "우회전" }, "path": { "points": [[127.0530, 37.5437], [127.05708, 37.54298]] } }
+        ]
+      },
+      {
+        "properties": { "distance": 620, "time": 558 },
+        "steps": [
+          { "properties": { "distance": 620, "time": 558, "guidance": "직진" }, "path": { "points": [[127.05708, 37.54298], [127.06119, 37.54100]] } }
+        ]
+      }
+    ]
+  }
+}
