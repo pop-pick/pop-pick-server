@@ -27,6 +27,8 @@ data class PopupDetailResponse(
     val source: SourceType,
     val sourceUrls: List<String>?,
     val tags: List<String>?,
+    /** 팝픽 상세 조회수. 같은 조회자의 10분 내 재조회는 세지 않는다. */
+    val viewCount: Long,
 ) {
     companion object {
         fun from(popup: Popup) =
@@ -51,6 +53,7 @@ data class PopupDetailResponse(
                 source = popup.source,
                 sourceUrls = popup.sourceUrls,
                 tags = popup.tags,
+                viewCount = popup.viewCount,
             )
     }
 }

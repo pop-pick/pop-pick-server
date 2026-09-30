@@ -38,7 +38,12 @@ class PopupDetailResponseTest :
                 source shouldBe SourceType.KAKAO_MAP
                 sourceUrls shouldBe listOf("http://place.map.kakao.com/1001", "https://www.instagram.com/p/abc")
                 tags shouldBe listOf("캐릭터", "굿즈", "포토존")
+                viewCount shouldBe 0L
             }
+        }
+
+        test("조회수는 팝업의 viewCount 를 그대로 내려준다") {
+            PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(viewCount = 12_000L)).viewCount shouldBe 12_000L
         }
 
         test("보강 전 팝업은 nullable 필드를 null 로, 입장 방식은 UNKNOWN 으로 내려준다") {
@@ -66,6 +71,7 @@ class PopupDetailResponseTest :
                     source = SourceType.PERPLEXITY,
                     sourceUrls = null,
                     tags = null,
+                    viewCount = 0L,
                 )
         }
 
