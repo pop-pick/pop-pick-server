@@ -91,6 +91,12 @@ class PopupEntity(
     var enrichRetryCount: Int = 0,
     /** 마지막 보강 시각(타임존 포함). NULL 이면 아직 보강하지 않은 팝업. */
     var enrichedAt: OffsetDateTime? = null,
+    /**
+     * 팝픽 상세 조회수(중복 조회 제외). INSERT 시 DB DEFAULT 0 으로 채워지고, PopupViewCountRepository 의 원자적 UPDATE 로만 바뀐다.
+     * JPA INSERT/UPDATE 에서 제외해 보강 저장(merge)이 예전에 읽은 값으로 덮어쓰지 않게 한다.
+     */
+    @Column(name = "view_count", nullable = false, insertable = false, updatable = false)
+    var viewCount: Long = 0,
     /** 팝업 식별자(popup_id). 저장 전엔 NULL. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -126,6 +132,7 @@ class PopupEntity(
                 placeResolution = popup.placeResolution,
                 enrichRetryCount = popup.enrichRetryCount,
                 enrichedAt = popup.enrichedAt,
+                viewCount = popup.viewCount,
                 id = popup.id,
             )
     }
@@ -158,6 +165,7 @@ class PopupEntity(
             placeResolution = placeResolution,
             enrichRetryCount = enrichRetryCount,
             enrichedAt = enrichedAt,
+            viewCount = viewCount,
             id = id,
         )
 }
