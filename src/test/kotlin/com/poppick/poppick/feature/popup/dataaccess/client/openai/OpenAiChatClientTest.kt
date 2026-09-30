@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popup.dataaccess.client.openai
 
+import com.poppick.poppick.config.properties.OpenAiProperties
 import com.poppick.poppick.feature.popup.Fixtures
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -44,10 +45,10 @@ class OpenAiChatClientTest :
             fun complete() = client.complete("지시문", "입력", "planner_course", schema)
         }
 
-        fun setUp(): Setup {
+        fun setUp(properties: OpenAiProperties = Fixtures.openAiProperties()): Setup {
             val builder = RestClient.builder().baseUrl("https://api.openai.com")
             val server = MockRestServiceServer.bindTo(builder).build()
-            val client = OpenAiChatClient(Fixtures.jsonMapper, Fixtures.openAiProperties())
+            val client = OpenAiChatClient(Fixtures.jsonMapper, properties)
             client.restClient = builder.build()
             val sleeps = mutableListOf<Duration>()
             client.sleeper = { sleeps += it }
@@ -75,7 +76,7 @@ class OpenAiChatClientTest :
                 """.trimIndent()
         }
 
-        test("요청 본문: model · instructions · input · strict json_schema · temperature · max_output_tokens, 응답의 output_text 를 돌려준다") {
+        test("요청 본문: model · instructions · input · strict json_schema · max_output_tokens, 응답의 output_text 를 돌려준다") {
             val setup = setUp()
             setup
                 .expectRequest()
@@ -86,8 +87,7 @@ class OpenAiChatClientTest :
                 .andExpect(jsonPath("$.text.format.name").value("planner_course"))
                 .andExpect(jsonPath("$.text.format.strict").value(true))
                 .andExpect(jsonPath("$.text.format.schema.additionalProperties").value(false))
-                .andExpect(jsonPath("$.temperature").value(0.7))
-                .andExpect(jsonPath("$.max_output_tokens").value(1024))
+                .andExpect(jsonPath("$.max_output_tokens").value(4096))
                 .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
 
             val text = setup.complete()
@@ -96,11 +96,58 @@ class OpenAiChatClientTest :
             text shouldBe """{"title": "성수 코스"}"""
         }
 
+        test("temperature · reasoning effort 가 null 이면 본문에 키가 없다") {
+            val setup = setUp()
+            setup
+                .expectRequest()
+                .andExpect(jsonPath("$.temperature").doesNotExist())
+                .andExpect(jsonPath("$.reasoning").doesNotExist())
+                .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
+
+            setup.complete()
+
+            setup.server.verify()
+        }
+
+        test("temperature 를 설정하면 본문에 들어간다") {
+            val setup = setUp(Fixtures.openAiProperties(chatTemperature = 0.7))
+            setup
+                .expectRequest()
+                .andExpect(jsonPath("$.temperature").value(0.7))
+                .andExpect(jsonPath("$.reasoning").doesNotExist())
+                .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
+
+            setup.complete()
+
+            setup.server.verify()
+        }
+
+        test("reasoning effort 를 설정하면 reasoning 객체가 들어간다") {
+            val setup = setUp(Fixtures.openAiProperties(chatReasoningEffort = "low"))
+            setup
+                .expectRequest()
+                .andExpect(jsonPath("$.reasoning.effort").value("low"))
+                .andExpect(jsonPath("$.temperature").doesNotExist())
+                .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
+
+            setup.complete()
+
+            setup.server.verify()
+        }
+
         test("status=incomplete(max_output_tokens) 면 예외") {
             val setup = setUp()
             setup.expectRequest().andRespond(
                 withSuccess(response(status = "incomplete", incompleteReason = "max_output_tokens"), MediaType.APPLICATION_JSON),
             )
+
+            shouldThrow<OpenAiClientException> { setup.complete() }.message!! shouldContain "reason=max_output_tokens"
+        }
+
+        test("status=incomplete 면 output 구조가 깨져 있어도 reason 을 담아 예외") {
+            val setup = setUp()
+            val body = """{"status": "incomplete", "incomplete_details": {"reason": "max_output_tokens"}, "output": [{"id": "rs_1"}]}"""
+            setup.expectRequest().andRespond(withSuccess(body, MediaType.APPLICATION_JSON))
 
             shouldThrow<OpenAiClientException> { setup.complete() }.message!! shouldContain "reason=max_output_tokens"
         }

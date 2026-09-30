@@ -18,5 +18,9 @@ data class OpenAiProperties(
     /** Responses API 읽기 타임아웃. 생성 응답이라 임베딩보다 길게 둔다. */
     val chatReadTimeoutSeconds: Long,
     /** Responses API 출력 토큰 상한(max_output_tokens). 넘으면 incomplete 로 끊겨 실패 처리된다. */
-    val chatMaxOutputTokens: Int = 1024,
+    val chatMaxOutputTokens: Int = 4096,
+    /** Responses API temperature. null 이면 요청에서 생략한다(gpt-5 · o 계열은 temperature 를 받지 않는다). */
+    val chatTemperature: Double? = null,
+    /** Responses API reasoning.effort. null 이면 생략한다(gpt-4.1 계열은 reasoning 을 받지 않는다). */
+    val chatReasoningEffort: String? = null,
 )

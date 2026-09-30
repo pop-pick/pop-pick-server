@@ -66,6 +66,8 @@ object Fixtures {
     fun openAiProperties(
         embeddingDimensions: Int = 1536,
         batchSize: Int = 32,
+        chatTemperature: Double? = null,
+        chatReasoningEffort: String? = null,
     ) = OpenAiProperties(
         apiKey = "test-openai-key",
         baseUrl = "https://api.openai.com",
@@ -75,5 +77,7 @@ object Fixtures {
         batchSize = batchSize,
         chatModel = "gpt-4.1-mini",
         chatReadTimeoutSeconds = 90,
+        chatTemperature = chatTemperature,
+        chatReasoningEffort = chatReasoningEffort,
     )
 }

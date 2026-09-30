@@ -67,21 +67,24 @@ class OpenAiChatClient(
                 input = input,
                 text = OpenAiChatRequest.Text(OpenAiChatRequest.Format(name = schemaName, schema = schema)),
                 maxOutputTokens = properties.chatMaxOutputTokens,
+                temperature = properties.chatTemperature,
+                reasoning = properties.chatReasoningEffort?.let { OpenAiChatRequest.Reasoning(it) },
             )
         val body = mapper.writeValueAsBytes(request)
         log.debug { "openai chat 요청 ${String(body)}" }
 
         val responseBody = postWithRetry(body)
         log.debug { "openai chat 응답 ${String(responseBody)}" }
-        val response = parseResponse(responseBody)
+        // 잘린 응답은 output 구조 · JSON 이 불완전하므로 output 을 파싱하기 전에 status 부터 확인한다.
+        val header = parse(responseBody, ResponseStatus::class.java)
+        if (header.status != OpenAiChatResponse.STATUS_COMPLETED) {
+            throw OpenAiClientException("OpenAI 응답 미완료 status=${header.status} reason=${header.incompleteDetails?.reason}")
+        }
+
+        val response = parse(responseBody, OpenAiChatResponse::class.java)
         log.info {
             "openai chat usage: model=${properties.chatModel} schema=$schemaName " +
                 "input_tokens=${response.usage?.inputTokens} output_tokens=${response.usage?.outputTokens}"
-        }
-
-        // 잘린 응답은 JSON 이 불완전하므로 돌려주지 않는다.
-        if (response.status != OpenAiChatResponse.STATUS_COMPLETED) {
-            throw OpenAiClientException("OpenAI 응답 미완료 status=${response.status} reason=${response.incompleteDetails?.reason}")
         }
         return response.outputText().takeIf { it.isNotBlank() }
             ?: throw OpenAiClientException("OpenAI output_text 가 없습니다.")
@@ -134,10 +137,19 @@ class OpenAiChatClient(
         }.getOrNull()
     }
 
-    private fun parseResponse(body: ByteArray): OpenAiChatResponse =
+    private fun <T> parse(
+        body: ByteArray,
+        type: Class<T>,
+    ): T =
         try {
-            mapper.readValue(body, OpenAiChatResponse::class.java)
+            mapper.readValue(body, type)
         } catch (e: JacksonException) {
             throw OpenAiClientException("OpenAI 응답 파싱 실패", e)
         }
+
+    /** status 판정용. output 구조와 무관하게 읽힌다. */
+    private data class ResponseStatus(
+        val status: String? = null,
+        val incompleteDetails: OpenAiChatResponse.IncompleteDetails? = null,
+    )
 }
