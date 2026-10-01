@@ -5,6 +5,7 @@ import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popuplist.business.PopupListService
 import com.poppick.poppick.global.paging.Cursorable
+import com.poppick.poppick.global.paging.Slice
 import com.poppick.poppick.global.util.KST
 import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.ints.shouldBeLessThanOrEqual
@@ -63,7 +64,7 @@ class PopupListIntegrationTest {
 
     @Test
     fun `keyword 없이 조회하면 노출 대상 팝업을 오픈일 최신순으로 반환한다`() {
-        val slice = popupListService.findPopups(null, Cursorable(null, 20))
+        val slice = findPopups(null, Cursorable(null, 20))
 
         printPage("keyword 없음, limit=20", slice.content, slice.hasNext)
         assumeTrue(slice.content.isNotEmpty(), "노출 중인 팝업이 없음")
@@ -75,8 +76,8 @@ class PopupListIntegrationTest {
 
     @Test
     fun `limit 만큼만 반환하고 남은 데이터가 있으면 hasNext 가 true 다`() {
-        val all = popupListService.findPopups(null, Cursorable(null, 50))
-        val slice = popupListService.findPopups(null, Cursorable(null, 3))
+        val all = findPopups(null, Cursorable(null, 50))
+        val slice = findPopups(null, Cursorable(null, 3))
 
         printPage("limit=3", slice.content, slice.hasNext)
 
@@ -86,11 +87,11 @@ class PopupListIntegrationTest {
 
     @Test
     fun `첫 페이지 마지막 팝업을 cursor 로 넘기면 정렬 순서상 그 다음부터 이어서 조회한다`() {
-        val first = popupListService.findPopups(null, Cursorable(null, 3))
+        val first = findPopups(null, Cursorable(null, 3))
         assumeTrue(first.hasNext, "다음 페이지가 없음(노출 중 팝업 3개 이하)")
 
         val cursor = PopupSearchCursor.of(first.content.last())
-        val second = popupListService.findPopups(null, Cursorable(cursor, 3))
+        val second = findPopups(null, Cursorable(cursor, 3))
 
         printPage("1페이지 limit=3", first.content, first.hasNext)
         printPage("2페이지 cursor=$cursor limit=3", second.content, second.hasNext)
@@ -99,7 +100,7 @@ class PopupListIntegrationTest {
         (first.content.map { it.id } intersect second.content.map { it.id }.toSet()) shouldBe emptySet()
 
         // 두 페이지를 이어 붙인 결과는 limit=6 으로 한 번에 조회한 결과와 같아야 한다
-        val combined = popupListService.findPopups(null, Cursorable(null, 6))
+        val combined = findPopups(null, Cursorable(null, 6))
         (first.content + second.content).map { it.id } shouldBe combined.content.map { it.id }
     }
 
@@ -140,13 +141,13 @@ class PopupListIntegrationTest {
 
     @Test
     fun `DB 에 없는 popupId 가 담긴 cursor 도 값 기준으로 이어서 조회한다(삭제된 cursor 팝업)`() {
-        val first = popupListService.findPopups(null, Cursorable(null, 3))
+        val first = findPopups(null, Cursorable(null, 3))
         val startDate = first.content.lastOrNull()?.startDate
         assumeTrue(startDate != null, "오픈일 있는 노출 팝업이 없음")
 
         // 존재하지 않는 popupId: 같은 오픈일 구간의 모든 팝업보다 뒤(DESC 기준 앞)에 있던 팝업이 삭제된 상황
         val cursor = PopupSearchCursor(startDate, Long.MAX_VALUE)
-        val next = popupListService.findPopups(null, Cursorable(cursor, 50))
+        val next = findPopups(null, Cursorable(cursor, 50))
         val expected = visibleInOrder().filter { it.isAfter(cursor) }.take(50)
 
         printPage("삭제된 cursor=$cursor", next.content, next.hasNext)
@@ -168,14 +169,13 @@ class PopupListIntegrationTest {
     fun `keyword 로 제목 · 브랜드 · 주소를 부분 일치 검색한다`() {
         val keyword =
             System.getenv("POPUP_TEST_KEYWORD")?.takeIf { it.isNotBlank() }
-                ?: popupListService
-                    .findPopups(null, Cursorable(null, 1))
+                ?: findPopups(null, Cursorable(null, 1))
                     .content
                     .firstOrNull()
                     ?.title
         assumeTrue(keyword != null, "검색어로 쓸 팝업이 없음")
 
-        val slice = popupListService.findPopups(keyword, Cursorable(null, 20))
+        val slice = findPopups(keyword, Cursorable(null, 20))
 
         printPage("keyword='$keyword'", slice.content, slice.hasNext)
         assumeTrue(slice.content.isNotEmpty(), "'$keyword' 검색 결과 없음")
@@ -185,6 +185,12 @@ class PopupListIntegrationTest {
         slice.content shouldBe slice.content.sortedWith(latestOpenOrder)
     }
 
+    /** 비로그인 조회. wished 는 이 테스트의 관심사가 아니라 Popup 만 꺼낸다. */
+    private fun findPopups(
+        keyword: String?,
+        cursorable: Cursorable<PopupSearchCursor>,
+    ): Slice<Popup> = popupListService.findPopups(null, keyword, cursorable).map { it.popup }
+
     private fun fetchAll(
         limit: Int,
         from: PopupSearchCursor? = null,
@@ -192,7 +198,7 @@ class PopupListIntegrationTest {
         val seen = mutableListOf<Popup>()
         var cursor = from
         do {
-            val slice = popupListService.findPopups(null, Cursorable(cursor, limit))
+            val slice = findPopups(null, Cursorable(cursor, limit))
             seen += slice.content
             cursor = slice.content.lastOrNull()?.let { PopupSearchCursor.of(it) }
         } while (slice.hasNext && cursor != null)

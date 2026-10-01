@@ -3,6 +3,7 @@ package com.poppick.poppick.feature.popupdetail.presentation
 import com.poppick.poppick.feature.popup.Fixtures
 import com.poppick.poppick.feature.popupdetail.PopupDetailFixtures
 import com.poppick.poppick.feature.popupdetail.business.PopupDetailService
+import com.poppick.poppick.feature.popupdetail.domain.PopupDetail
 import com.poppick.poppick.global.advice.GlobalExceptionHandler
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
@@ -11,13 +12,14 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import tools.jackson.databind.JsonNode
 
 /** 값이 항상 채워지는 필드(non-null). */
-private val NON_NULL_FIELDS = listOf("popupId", "title", "reservationType", "source")
+private val NON_NULL_FIELDS = listOf("popupId", "title", "reservationType", "source", "wished")
 
 /** 보강 전 등으로 비어 있을 수 있는 필드(nullable). */
 private val NULLABLE_FIELDS =
@@ -44,7 +46,7 @@ private fun JsonNode.strings() = toList().map { it.asString() }
 
 /**
  * 컨트롤러 + GlobalExceptionHandler 만 standalone 으로 띄워 응답 JSON 을 검증한다.
- * 보안 필터 체인 · DB 는 포함하지 않는다.
+ * 보안 필터 체인 · DB 는 포함하지 않는다(인증 없음 = 비로그인). 로그인 여부별 wished 는 PopupWishedAuthTest 에서 본다.
  */
 class PopupDetailControllerTest :
     FunSpec({
@@ -53,6 +55,7 @@ class PopupDetailControllerTest :
             MockMvcBuilders
                 .standaloneSetup(PopupDetailController(service))
                 .setControllerAdvice(GlobalExceptionHandler())
+                .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
                 .build()
 
         fun MockMvc.getJson(
@@ -69,7 +72,7 @@ class PopupDetailControllerTest :
         }
 
         test("GET /api/v1/popups/{popupId} 는 SUCCESS 와 상세 정보를 내려준다") {
-            every { service.findPopupDetail(1L) } returns PopupDetailFixtures.fullPopup(id = 1L)
+            every { service.findPopupDetail(null, 1L) } returns PopupDetail(PopupDetailFixtures.fullPopup(id = 1L), wished = false)
 
             val json = mockMvc.getJson("/api/v1/popups/1", 200)
 
@@ -94,11 +97,12 @@ class PopupDetailControllerTest :
                 this["reservationOpenAt"].isNull shouldBe false
                 this["source"].asString() shouldBe "KAKAO_MAP"
                 this["tags"].strings() shouldBe listOf("캐릭터", "굿즈", "포토존")
+                this["wished"].asBoolean() shouldBe false
             }
         }
 
-        test("응답 data 는 PopupDetailResponse 의 20개 필드만 담고 내부 필드는 노출하지 않는다") {
-            every { service.findPopupDetail(1L) } returns PopupDetailFixtures.fullPopup(id = 1L)
+        test("응답 data 는 PopupDetailResponse 의 21개 필드만 담고 내부 필드는 노출하지 않는다") {
+            every { service.findPopupDetail(null, 1L) } returns PopupDetail(PopupDetailFixtures.fullPopup(id = 1L), wished = false)
 
             val json = mockMvc.getJson("/api/v1/popups/1", 200)
 
@@ -106,7 +110,7 @@ class PopupDetailControllerTest :
         }
 
         test("nullable 필드가 비어 있는 팝업도 200 으로 조회되고 해당 키는 null 로 내려간다") {
-            every { service.findPopupDetail(2L) } returns PopupDetailFixtures.minimalPopup(id = 2L)
+            every { service.findPopupDetail(null, 2L) } returns PopupDetail(PopupDetailFixtures.minimalPopup(id = 2L), wished = false)
 
             val json = mockMvc.getJson("/api/v1/popups/2", 200)
 
@@ -123,7 +127,7 @@ class PopupDetailControllerTest :
         }
 
         test("없는 popupId 는 404 · E404 에러 응답을 내려준다") {
-            every { service.findPopupDetail(999L) } throws AppException(ErrorType.NOT_FOUND_DATA)
+            every { service.findPopupDetail(null, 999L) } throws AppException(ErrorType.NOT_FOUND_DATA)
 
             val json = mockMvc.getJson("/api/v1/popups/999", 404)
 
