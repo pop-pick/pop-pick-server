@@ -1,7 +1,7 @@
 package com.poppick.poppick.feature.popuplist.presentation.dto.response
 
-import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
+import com.poppick.poppick.feature.popuplist.domain.PopupListItem
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.paging.Slice
@@ -28,15 +28,15 @@ data class PopupListPageResponse(
     val nextCursor: String?,
 ) {
     companion object {
-        fun from(slice: Slice<Popup>) =
+        fun from(slice: Slice<PopupListItem>) =
             PopupListPageResponse(
-                content = slice.content.map { PopupListResponse.from(it) },
+                content = slice.content.map { PopupListResponse.from(it.popup, it.wished) },
                 hasNext = slice.hasNext,
                 nextCursor =
                     slice.content
                         .lastOrNull()
                         ?.takeIf { slice.hasNext }
-                        ?.let { encodeCursor(PopupSearchCursor.of(it)) },
+                        ?.let { encodeCursor(PopupSearchCursor.of(it.popup)) },
             )
 
         /** "{yyyy-MM-dd 또는 _}:{popupId}" 를 Base64URL(패딩 없음)로 인코딩한다. */
