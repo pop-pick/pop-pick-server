@@ -2,6 +2,7 @@ package com.poppick.poppick.feature.popuplist.business
 
 import com.poppick.poppick.feature.member.implement.FavoriteAreaReader
 import com.poppick.poppick.feature.member.implement.InterestCategoryReader
+import com.poppick.poppick.feature.member.implement.MemberPreferenceReader
 import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
@@ -20,10 +21,14 @@ class PopupListService(
     private val popupListReader: PopupListReader,
     private val interestCategoryReader: InterestCategoryReader,
     private val favoriteAreaReader: FavoriteAreaReader,
+    private val memberPreferenceReader: MemberPreferenceReader,
 ) {
     companion object {
         /** 홈 "지금 인기 있는 팝업" 개수. */
         const val POPULAR_POPUP_COUNT = 3
+
+        /** 홈 회원 추천 팝업 개수. */
+        const val RECOMMENDED_POPUP_COUNT = 3
 
         /**
          * 지도 한 번에 내려주는 최대 마커 수(안전 상한). 넓은 영역 요청 · 데이터 증가 시 응답 크기와 지도 렌더링 부담을 막는다.
@@ -46,6 +51,31 @@ class PopupListService(
         popupListReader
             .findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, Cursorable(null, POPULAR_POPUP_COUNT))
             .content
+
+    /**
+     * 회원 추천 팝업(최대 RECOMMENDED_POPUP_COUNT 개). 관심 카테고리 또는 선호 지역이 맞는 노출 중인 팝업을 인기순으로 뽑고,
+     * 모자라면 인기 팝업(findPopularPopups)에서 이미 뽑은 팝업을 빼고 채운다. 선호값이 없으면 인기 팝업 그대로다.
+     * 일치 팝업이 k(< 3)개면 인기 Top3 에서 많아야 k개가 겹치므로 Top3 만으로 3 - k 개를 채울 수 있다. 조회수는 올리지 않는다.
+     */
+    fun findRecommendedPopups(memberKey: String): List<Popup> {
+        val preference = memberPreferenceReader.find(memberKey)
+        val preferred =
+            if (preference.interestCategoryIds.isEmpty() && preference.favoriteAreaIds.isEmpty()) {
+                emptyList()
+            } else {
+                popupListReader.findPreferredPopups(
+                    preference.interestCategoryIds,
+                    preference.favoriteAreaIds,
+                    LocalDate.now(KST),
+                    RECOMMENDED_POPUP_COUNT,
+                )
+            }
+        if (preferred.size >= RECOMMENDED_POPUP_COUNT) return preferred
+
+        val preferredIds = preferred.map { it.id }.toSet()
+        val fill = findPopularPopups().filterNot { it.id in preferredIds }
+        return preferred + fill.take(RECOMMENDED_POPUP_COUNT - preferred.size)
+    }
 
     /**
      * 지도 영역 안의 노출 중인 팝업(최대 MAP_POPUP_LIMIT 개). 노출 조건 · keyword 조건은 목록과 같다. 조회수는 올리지 않는다.

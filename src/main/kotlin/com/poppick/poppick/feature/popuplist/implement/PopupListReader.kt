@@ -27,4 +27,11 @@ class PopupListReader(
         bounds: MapBounds,
         limit: Int,
     ): List<Popup> = popupSearchReader.findMapPopups(keyword, today, bounds, limit)
+
+    fun findPreferredPopups(
+        categoryIds: Collection<Int>,
+        areaIds: Collection<Int>,
+        today: LocalDate,
+        limit: Int,
+    ): List<Popup> = popupSearchReader.findPreferredPopups(categoryIds, areaIds, today, limit)
 }

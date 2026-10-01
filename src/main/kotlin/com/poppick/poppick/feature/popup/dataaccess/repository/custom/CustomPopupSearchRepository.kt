@@ -37,4 +37,16 @@ interface CustomPopupSearchRepository {
         bounds: MapBounds,
         limit: Int,
     ): List<PopupEntity>
+
+    /**
+     * 회원 취향과 맞는 노출 중인 팝업(최대 limit 건). 노출 조건은 findPopups 와 같다.
+     * interest_category_id IN categoryIds OR area_id IN areaIds 이며, 빈 목록 쪽 조건은 뺀다(NULL 은 어느 쪽과도 일치하지 않는다).
+     * 정렬은 인기순(view_count DESC, popup_id DESC). 두 목록이 모두 비면 호출하지 않는다.
+     */
+    fun findPreferredPopups(
+        categoryIds: Collection<Int>,
+        areaIds: Collection<Int>,
+        today: LocalDate,
+        limit: Int,
+    ): List<PopupEntity>
 }

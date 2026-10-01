@@ -2,8 +2,10 @@ package com.poppick.poppick.feature.popuplist.business
 
 import com.poppick.poppick.feature.member.domain.FavoriteArea
 import com.poppick.poppick.feature.member.domain.InterestCategory
+import com.poppick.poppick.feature.member.domain.MemberPreference
 import com.poppick.poppick.feature.member.implement.FavoriteAreaReader
 import com.poppick.poppick.feature.member.implement.InterestCategoryReader
+import com.poppick.poppick.feature.member.implement.MemberPreferenceReader
 import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
@@ -38,7 +40,7 @@ class PopupListServiceTest :
                     }
                 }
 
-            PopupListService(reader, mockk(), mockk()).findPopularPopups() shouldBe popups
+            PopupListService(reader, mockk(), mockk(), mockk()).findPopularPopups() shouldBe popups
 
             verify(exactly = 1) { reader.findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
         }
@@ -51,7 +53,7 @@ class PopupListServiceTest :
                         Slice(popups, top3Cursorable, hasNext = false)
                 }
 
-            PopupListService(reader, mockk(), mockk()).findPopularPopups() shouldBe popups
+            PopupListService(reader, mockk(), mockk(), mockk()).findPopularPopups() shouldBe popups
         }
 
         test("노출 대상이 없으면 빈 목록") {
@@ -61,7 +63,7 @@ class PopupListServiceTest :
                         Slice(emptyList(), top3Cursorable, hasNext = false)
                 }
 
-            PopupListService(reader, mockk(), mockk()).findPopularPopups() shouldBe emptyList()
+            PopupListService(reader, mockk(), mockk(), mockk()).findPopularPopups() shouldBe emptyList()
         }
 
         test("인기 팝업 개수는 3") {
@@ -74,7 +76,7 @@ class PopupListServiceTest :
                     every { findAll() } returns listOf(InterestCategory(1, "캐릭터/IP"), InterestCategory(5, "뷰티"))
                 }
 
-            PopupListService(mockk(), categoryReader, mockk()).findCategoryNames() shouldBe mapOf(1 to "캐릭터/IP", 5 to "뷰티")
+            PopupListService(mockk(), categoryReader, mockk(), mockk()).findCategoryNames() shouldBe mapOf(1 to "캐릭터/IP", 5 to "뷰티")
 
             verify(exactly = 1) { categoryReader.findAll() }
         }
@@ -89,7 +91,7 @@ class PopupListServiceTest :
                         every { findMapPopups("성수", any(), bounds, PopupListService.MAP_POPUP_LIMIT + 1) } returns popups
                     }
 
-                PopupListService(reader, mockk(), mockk()).findMapPopups("성수", bounds) shouldBe popups
+                PopupListService(reader, mockk(), mockk(), mockk()).findMapPopups("성수", bounds) shouldBe popups
 
                 verify(exactly = 1) {
                     reader.findMapPopups("성수", LocalDate.now(KST), bounds, PopupListService.MAP_POPUP_LIMIT + 1)
@@ -100,7 +102,7 @@ class PopupListServiceTest :
                 val over = (1..PopupListService.MAP_POPUP_LIMIT + 1).map { popup(it.toLong(), 0) }
                 val reader = mockk<PopupListReader> { every { findMapPopups(null, any(), bounds, any()) } returns over }
 
-                val result = PopupListService(reader, mockk(), mockk()).findMapPopups(null, bounds)
+                val result = PopupListService(reader, mockk(), mockk(), mockk()).findMapPopups(null, bounds)
 
                 result.size shouldBe PopupListService.MAP_POPUP_LIMIT
                 result shouldBe over.take(PopupListService.MAP_POPUP_LIMIT)
@@ -109,16 +111,130 @@ class PopupListServiceTest :
             test("결과가 없으면 빈 목록") {
                 val reader = mockk<PopupListReader> { every { findMapPopups(any(), any(), bounds, any()) } returns emptyList() }
 
-                PopupListService(reader, mockk(), mockk()).findMapPopups(null, bounds) shouldBe emptyList()
+                PopupListService(reader, mockk(), mockk(), mockk()).findMapPopups(null, bounds) shouldBe emptyList()
             }
 
             test("상권 이름은 전체를 한 번만 조회해 id → 이름으로 돌려준다") {
                 val areaReader =
                     mockk<FavoriteAreaReader> { every { findAll() } returns listOf(FavoriteArea(1, "성수"), FavoriteArea(7, "강남")) }
 
-                PopupListService(mockk(), mockk(), areaReader).findAreaNames() shouldBe mapOf(1 to "성수", 7 to "강남")
+                PopupListService(mockk(), mockk(), areaReader, mockk()).findAreaNames() shouldBe mapOf(1 to "성수", 7 to "강남")
 
                 verify(exactly = 1) { areaReader.findAll() }
+            }
+        }
+
+        context("회원 추천 팝업") {
+            fun preference(
+                categoryIds: List<Int> = emptyList(),
+                areaIds: List<Int> = emptyList(),
+                activityIds: List<Int> = emptyList(),
+            ) = MemberPreference(favoriteAreaIds = areaIds, interestCategoryIds = categoryIds, preferredActivityIds = activityIds)
+
+            fun preferenceReader(preference: MemberPreference) =
+                mockk<MemberPreferenceReader> { every { find("member-1") } returns preference }
+
+            fun reader(
+                preferred: List<Popup> = emptyList(),
+                popular: List<Popup> = emptyList(),
+            ) = mockk<PopupListReader> {
+                every { findPreferredPopups(any(), any(), any(), any()) } returns preferred
+                every { findPopups(null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
+                    Slice(popular, top3Cursorable, hasNext = false)
+            }
+
+            fun service(
+                reader: PopupListReader,
+                preference: MemberPreference,
+            ) = PopupListService(reader, mockk(), mockk(), preferenceReader(preference))
+
+            test("관심 카테고리 · 선호 지역을 오늘(KST) 기준으로 3개 조회하고, 3개면 인기 팝업은 조회하지 않는다") {
+                val preferred = listOf(popup(9, 5), popup(7, 5), popup(3, 1))
+                val reader = reader(preferred = preferred)
+
+                service(reader, preference(categoryIds = listOf(1, 5), areaIds = listOf(2))).findRecommendedPopups("member-1") shouldBe
+                    preferred
+
+                verify(exactly = 1) {
+                    reader.findPreferredPopups(listOf(1, 5), listOf(2), LocalDate.now(KST), PopupListService.RECOMMENDED_POPUP_COUNT)
+                }
+                verify(exactly = 0) { reader.findPopups(any(), any(), any(), any()) }
+            }
+
+            test("선호 활동(preferredActivityIds)은 조건에 쓰지 않는다") {
+                val reader = reader(preferred = listOf(popup(9, 0), popup(8, 0), popup(7, 0)))
+
+                service(reader, preference(categoryIds = listOf(1), activityIds = listOf(3, 4))).findRecommendedPopups("member-1")
+
+                verify(exactly = 1) { reader.findPreferredPopups(listOf(1), emptyList(), any(), any()) }
+            }
+
+            test("관심 카테고리만 있으면 선호 지역은 빈 목록으로 넘긴다") {
+                val reader = reader(preferred = listOf(popup(9, 0), popup(8, 0), popup(7, 0)))
+
+                service(reader, preference(categoryIds = listOf(2))).findRecommendedPopups("member-1")
+
+                verify(exactly = 1) { reader.findPreferredPopups(listOf(2), emptyList(), any(), any()) }
+            }
+
+            test("선호 지역만 있으면 관심 카테고리는 빈 목록으로 넘긴다") {
+                val reader = reader(preferred = listOf(popup(9, 0), popup(8, 0), popup(7, 0)))
+
+                service(reader, preference(areaIds = listOf(4))).findRecommendedPopups("member-1")
+
+                verify(exactly = 1) { reader.findPreferredPopups(emptyList(), listOf(4), any(), any()) }
+            }
+
+            test("선호값이 없으면 추천 쿼리 없이 인기 Top3 를 그대로 돌려준다") {
+                val popular = listOf(popup(5, 9), popup(4, 3), popup(1, 0))
+                val reader = reader(popular = popular)
+
+                service(reader, preference(activityIds = listOf(1))).findRecommendedPopups("member-1") shouldBe popular
+
+                verify(exactly = 0) { reader.findPreferredPopups(any(), any(), any(), any()) }
+                verify(exactly = 1) { reader.findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
+            }
+
+            test("일치 팝업이 없으면 인기 Top3") {
+                val popular = listOf(popup(5, 9), popup(4, 3), popup(1, 0))
+
+                service(reader(popular = popular), preference(categoryIds = listOf(8))).findRecommendedPopups("member-1") shouldBe popular
+            }
+
+            test("일치 팝업이 1개면 인기 팝업 앞의 2개로 채운다") {
+                val popular = listOf(popup(5, 9), popup(4, 3), popup(1, 0))
+
+                service(reader(preferred = listOf(popup(2, 0)), popular = popular), preference(areaIds = listOf(1)))
+                    .findRecommendedPopups("member-1")
+                    .map { it.id } shouldBe listOf(2L, 5L, 4L)
+            }
+
+            test("일치 팝업이 2개면 인기 팝업 1개로 채운다") {
+                val popular = listOf(popup(5, 9), popup(4, 3), popup(1, 0))
+
+                service(reader(preferred = listOf(popup(3, 1), popup(2, 0)), popular = popular), preference(areaIds = listOf(1)))
+                    .findRecommendedPopups("member-1")
+                    .map { it.id } shouldBe listOf(3L, 2L, 5L)
+            }
+
+            test("채울 때 이미 담긴 팝업은 빼고 다음 인기 팝업으로 채운다") {
+                val popular = listOf(popup(5, 9), popup(4, 3), popup(1, 0))
+
+                service(reader(preferred = listOf(popup(5, 9), popup(1, 0)), popular = popular), preference(categoryIds = listOf(1)))
+                    .findRecommendedPopups("member-1")
+                    .map { it.id } shouldBe listOf(5L, 1L, 4L)
+            }
+
+            test("노출 대상이 3개보다 적으면 있는 만큼만 돌려준다") {
+                val popular = listOf(popup(5, 9), popup(4, 3))
+
+                service(reader(preferred = listOf(popup(4, 3)), popular = popular), preference(categoryIds = listOf(1)))
+                    .findRecommendedPopups("member-1")
+                    .map { it.id } shouldBe listOf(4L, 5L)
+            }
+
+            test("추천 팝업 개수는 3") {
+                PopupListService.RECOMMENDED_POPUP_COUNT shouldBe 3
             }
         }
     })

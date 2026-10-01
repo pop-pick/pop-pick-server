@@ -50,6 +50,8 @@ class SecurityConfig(
                 authorize(HttpMethod.GET, "/api/v1/popups", permitAll)
                 authorize(HttpMethod.GET, "/api/v1/popups/popular", permitAll)
                 authorize(HttpMethod.GET, "/api/v1/popups/map", permitAll)
+                // 회원 추천은 로그인 필수. 아래 /{popupId} permitAll 에 먼저 매칭되지 않도록 그 앞에 둔다.
+                authorize(HttpMethod.GET, "/api/v1/popups/recommended", authenticated)
                 authorize(HttpMethod.GET, "/api/v1/popups/{popupId}", permitAll)
                 authorize(anyRequest, authenticated)
             }

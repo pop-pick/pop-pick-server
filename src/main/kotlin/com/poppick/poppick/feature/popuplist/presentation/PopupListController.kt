@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popuplist.presentation
 
+import com.poppick.poppick.feature.member.domain.Member
 import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.feature.popuplist.business.PopupListService
@@ -9,6 +10,7 @@ import com.poppick.poppick.feature.popuplist.presentation.dto.response.PopupMapR
 import com.poppick.poppick.global.paging.CursorDefault
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.response.ApiResponse
+import com.poppick.poppick.security.annotation.AuthMember
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.Parameters
@@ -93,6 +95,27 @@ class PopupListController(
     @GetMapping("/popular")
     fun findPopularPopups(): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
         val popups = popupListService.findPopularPopups()
+        val categoryNames = popupListService.findCategoryNames()
+
+        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames) }))
+    }
+
+    @Operation(
+        summary = "회원 추천 팝업",
+        description =
+            "홈 화면용 회원 추천 팝업을 최대 3개 조회한다. 로그인한 회원만 조회할 수 있다(비회원은 401 · E1000).\n\n" +
+                "온보딩에서 고른 관심 카테고리 또는 선호 지역 중 하나라도 맞는 팝업을 고른다. " +
+                "노출 조건(오픈했고 종료되지 않음)과 순서(상세 조회수 많은 순, 같은 조회수는 최근 등록순)는 인기 팝업 API 와 같다.\n\n" +
+                "맞는 팝업이 3개보다 적으면 인기 팝업 순서대로 이미 담긴 팝업을 빼고 채운다. " +
+                "관심 카테고리 · 선호 지역을 하나도 고르지 않은 회원은 인기 팝업과 같은 결과다. " +
+                "인기 팝업 API 결과와 겹칠 수 있다. 노출 대상이 3개보다 적으면 있는 만큼만 내려간다.\n\n" +
+                "이 API 호출로는 조회수가 오르지 않는다.",
+    )
+    @GetMapping("/recommended")
+    fun findRecommendedPopups(
+        @AuthMember member: Member,
+    ): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
+        val popups = popupListService.findRecommendedPopups(member.memberKey)
         val categoryNames = popupListService.findCategoryNames()
 
         return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames) }))

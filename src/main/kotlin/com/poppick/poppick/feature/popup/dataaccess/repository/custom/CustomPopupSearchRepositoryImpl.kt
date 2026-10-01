@@ -50,6 +50,34 @@ class CustomPopupSearchRepositoryImpl :
             .limit(limit.toLong())
             .fetch()
 
+    override fun findPreferredPopups(
+        categoryIds: Collection<Int>,
+        areaIds: Collection<Int>,
+        today: LocalDate,
+        limit: Int,
+    ): List<PopupEntity> {
+        val preferred = matchesPreference(categoryIds, areaIds)
+        require(preferred != null) { "관심 카테고리 · 선호 지역이 모두 비어 있다" }
+
+        return selectFrom(popupEntity)
+            .where(
+                visible(today),
+                preferred,
+            ).orderBy(*orderOf(PopupSortType.POPULAR))
+            .limit(limit.toLong())
+            .fetch()
+    }
+
+    /** 관심 카테고리 일치 OR 선호 지역 일치. 빈 목록 쪽 조건은 빼고, 둘 다 비면 null. */
+    private fun matchesPreference(
+        categoryIds: Collection<Int>,
+        areaIds: Collection<Int>,
+    ): BooleanExpression? =
+        listOfNotNull(
+            categoryIds.takeIf { it.isNotEmpty() }?.let { popupEntity.interestCategoryId.`in`(it) },
+            areaIds.takeIf { it.isNotEmpty() }?.let { popupEntity.areaId.`in`(it) },
+        ).reduceOrNull(BooleanExpression::or)
+
     /** 노출 중: 종료되지 않았고(end_date IS NULL OR end_date >= today) 오픈했다(start_date IS NULL OR start_date <= today). */
     private fun visible(today: LocalDate): BooleanExpression =
         popupEntity.endDate.isNull
