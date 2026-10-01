@@ -3,6 +3,7 @@ package com.poppick.poppick.feature.popuplist.presentation.dto.response
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.SourceType
+import com.poppick.poppick.feature.popuplist.domain.PopupListItem
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.paging.Cursorable
@@ -24,7 +25,7 @@ class PopupListPageResponseTest :
         fun slice(
             content: List<Popup>,
             hasNext: Boolean,
-        ) = Slice(content, Cursorable<PopupSearchCursor>(null, 10), hasNext)
+        ) = Slice(content.map { PopupListItem(it, wished = false) }, Cursorable<PopupSearchCursor>(null, 10), hasNext)
 
         fun encodeRaw(raw: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(raw.toByteArray())
 
@@ -83,5 +84,13 @@ class PopupListPageResponseTest :
         test("hasNext 가 false 이거나 결과가 없으면 nextCursor 는 null 이다") {
             PopupListPageResponse.from(slice(listOf(popup(1715, null)), hasNext = false)).nextCursor shouldBe null
             PopupListPageResponse.from(slice(emptyList(), hasNext = false)).nextCursor shouldBe null
+        }
+
+        test("항목의 wished 를 그대로 옮긴다") {
+            val items = listOf(PopupListItem(popup(1, null), wished = true), PopupListItem(popup(2, null), wished = false))
+
+            val response = PopupListPageResponse.from(Slice(items, Cursorable<PopupSearchCursor>(null, 10), hasNext = false))
+
+            response.content.map { it.popupId to it.wished } shouldBe listOf(1L to true, 2L to false)
         }
     })

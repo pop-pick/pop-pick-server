@@ -24,8 +24,6 @@ class PopupReader(
 
     fun findEmbedTargets(today: LocalDate): List<Popup> = popupRepository.findEmbedTargets(today).map { it.toDomain() }
 
-    fun findExpiredPopupIds(today: LocalDate): List<Long> = popupRepository.findExpiredPopupIds(today)
-
     fun findById(id: Long): Popup = popupRepository.findByIdOrNull(id)?.toDomain() ?: throw AppException(ErrorType.NOT_FOUND_DATA)
 
     /** ids 순서대로 반환한다. 없는 id 는 빠진다. */

@@ -15,7 +15,7 @@ class PopupDetailResponseTest :
         test("팝업의 상세 필드를 모두 그대로 옮긴다") {
             val popup = PopupDetailFixtures.fullPopup(id = 1L)
 
-            val response = PopupDetailResponse.from(popup)
+            val response = PopupDetailResponse.from(popup, wished = false)
 
             with(response) {
                 popupId shouldBe 1L
@@ -42,7 +42,7 @@ class PopupDetailResponseTest :
         }
 
         test("보강 전 팝업은 nullable 필드를 null 로, 입장 방식은 UNKNOWN 으로 내려준다") {
-            val response = PopupDetailResponse.from(PopupDetailFixtures.minimalPopup(id = 2L))
+            val response = PopupDetailResponse.from(PopupDetailFixtures.minimalPopup(id = 2L), wished = false)
 
             response shouldBe
                 PopupDetailResponse(
@@ -66,7 +66,12 @@ class PopupDetailResponseTest :
                     source = SourceType.PERPLEXITY,
                     sourceUrls = null,
                     tags = null,
+                    wished = false,
                 )
+        }
+
+        test("wished 는 넘긴 찜 여부를 그대로 담는다") {
+            PopupDetailResponse.from(PopupDetailFixtures.fullPopup(), wished = true).wished shouldBe true
         }
 
         test("일부만 채워진 값(종료일 · 도로명 주소 · 예약 오픈 시각 없음)은 있는 값만 채우고 나머지는 null 로 둔다") {
@@ -79,7 +84,7 @@ class PopupDetailResponseTest :
                     reservationOpenAt = null,
                 )
 
-            val response = PopupDetailResponse.from(popup)
+            val response = PopupDetailResponse.from(popup, wished = false)
 
             response.startDate shouldBe LocalDate.of(2026, 9, 10)
             response.endDate shouldBe null
@@ -91,13 +96,13 @@ class PopupDetailResponseTest :
         }
 
         test("입장료 0(무료)은 null(미확인)과 구분해 0 으로 내려준다") {
-            PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(entryFee = 0)).entryFee shouldBe 0
+            PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(entryFee = 0), wished = false).entryFee shouldBe 0
         }
 
         test("빈 목록은 null 로 바꾸지 않고 빈 목록 그대로 내려준다") {
             val popup = PopupDetailFixtures.fullPopup().copy(imageUrls = emptyList(), tags = emptyList())
 
-            val response = PopupDetailResponse.from(popup)
+            val response = PopupDetailResponse.from(popup, wished = false)
 
             response.imageUrls shouldBe emptyList()
             response.tags shouldBe emptyList()
@@ -105,7 +110,7 @@ class PopupDetailResponseTest :
 
         test("저장 전(id 없는) 팝업은 변환하지 않는다") {
             shouldThrow<IllegalArgumentException> {
-                PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(id = null))
+                PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(id = null), wished = false)
             }
         }
     })

@@ -1,10 +1,12 @@
 package com.poppick.poppick.feature.popuplist.presentation
 
+import com.poppick.poppick.feature.member.domain.Member
 import com.poppick.poppick.feature.popuplist.business.PopupListService
 import com.poppick.poppick.feature.popuplist.presentation.dto.response.PopupListPageResponse
 import com.poppick.poppick.global.paging.CursorDefault
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.response.ApiResponse
+import com.poppick.poppick.security.annotation.OptionalAuthMember
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.Parameters
@@ -30,7 +32,8 @@ class PopupListController(
                 "keyword 로 이름 · 브랜드 · 주소를 검색한다.\n\n" +
                 "페이지 조회: 첫 페이지는 cursor 없이 요청한다. 응답의 hasNext 가 true 이면 nextCursor 가 함께 내려가며, " +
                 "그 값을 그대로 다음 요청의 cursor 에 넣는다. hasNext 가 false 이면 nextCursor 는 null 이다.\n\n" +
-                "keyword 가 바뀌면 이전 cursor 를 재사용하지 말고 cursor 없이 첫 페이지부터 다시 요청한다.",
+                "keyword 가 바뀌면 이전 cursor 를 재사용하지 말고 cursor 없이 첫 페이지부터 다시 요청한다.\n\n" +
+                "Authorization 헤더는 선택. 보내면 각 항목의 wished 에 찜 여부가 담기고, 없으면 전부 false.",
     )
     @Parameters(
         Parameter(
@@ -51,13 +54,14 @@ class PopupListController(
     )
     @GetMapping
     fun findPopups(
+        @OptionalAuthMember member: Member?,
         @Parameter(description = "검색어. 이름 · 브랜드 · 도로명 주소 · 지번 주소 부분 일치(대소문자 무시). 생략하면 전체 목록.")
         @RequestParam(required = false)
         keyword: String?,
         @Parameter(hidden = true) @CursorDefault cursorable: Cursorable<String>,
     ): ResponseEntity<ApiResponse<PopupListPageResponse>> {
         val cursor = cursorable.cursor?.takeIf { it.isNotBlank() }?.let { PopupListPageResponse.decodeCursor(it) }
-        val slice = popupListService.findPopups(keyword, Cursorable(cursor, cursorable.limit))
+        val slice = popupListService.findPopups(member?.memberKey, keyword, Cursorable(cursor, cursorable.limit))
 
         return ResponseEntity.ok(ApiResponse.success(PopupListPageResponse.from(slice)))
     }
