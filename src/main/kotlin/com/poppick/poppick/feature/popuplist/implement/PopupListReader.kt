@@ -16,17 +16,20 @@ class PopupListReader(
 ) {
     fun findPopups(
         keyword: String?,
+        keywordAreaIds: Collection<Int>,
+        areaId: Int?,
         today: LocalDate,
         sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
-    ): Slice<Popup> = popupSearchReader.findPopups(keyword, today, sort, cursorable)
+    ): Slice<Popup> = popupSearchReader.findPopups(keyword, keywordAreaIds, areaId, today, sort, cursorable)
 
     fun findMapPopups(
         keyword: String?,
+        keywordAreaIds: Collection<Int>,
         today: LocalDate,
         bounds: MapBounds,
         limit: Int,
-    ): List<Popup> = popupSearchReader.findMapPopups(keyword, today, bounds, limit)
+    ): List<Popup> = popupSearchReader.findMapPopups(keyword, keywordAreaIds, today, bounds, limit)
 
     fun findPreferredPopups(
         categoryIds: Collection<Int>,

@@ -32,17 +32,28 @@ class PopupListController(
     @Operation(
         summary = "팝업 목록",
         description =
-            "오픈했고 종료되지 않은 팝업을 sort 순서로 조회한다. keyword 로 이름 · 브랜드 · 주소를 검색한다.\n\n" +
+            "오픈했고 종료되지 않은 팝업을 sort 순서로 조회한다. keyword 로 이름 · 브랜드 · 주소 · 지역 이름을 검색한다.\n\n" +
+                "지역 필터(areaId): 해당 상권(favorite_area)으로 분류된 팝업만 조회한다. keyword 와 함께 오면 두 조건을 모두 만족하는 팝업만 담는다. " +
+                "상권이 분류되지 않은 팝업은 지역 필터에 걸리지 않는다.\n\n" +
                 "정렬(sort): latest(기본) = 오픈일 최신순(오픈일 없는 팝업은 맨 뒤, 같은 오픈일은 최근 등록순), " +
                 "popular = 인기순(상세 조회수 많은 순, 같은 조회수는 최근 등록순).\n\n" +
                 "페이지 조회: 첫 페이지는 cursor 없이 요청한다. 응답의 hasNext 가 true 이면 nextCursor 가 함께 내려가며, " +
                 "그 값을 그대로 다음 요청의 cursor 에 넣는다. hasNext 가 false 이면 nextCursor 는 null 이다.\n\n" +
-                "keyword 나 sort 가 바뀌면 이전 cursor 를 재사용하지 말고 cursor 없이 첫 페이지부터 다시 요청한다. " +
+                "keyword · sort · areaId 가 바뀌면 이전 cursor 를 재사용하지 말고 cursor 없이 첫 페이지부터 다시 요청한다. " +
                 "다른 sort 의 cursor 를 보내면 400(E400).\n\n" +
                 "인기순은 조회수가 계속 바뀌는 값이라, 페이지를 넘기는 사이 조회수가 오른 팝업은 순서가 바뀌어 " +
                 "다음 페이지에서 빠질 수 있다.",
     )
     @Parameters(
+        Parameter(
+            name = "areaId",
+            `in` = ParameterIn.QUERY,
+            description =
+                "지역(상권) 필터. 온보딩 선호 지역 목록(GET /api/v1/onboardings/favorite-areas)의 id. " +
+                    "생략하면 전체 지역. 없는 id 면 빈 목록.",
+            schema = Schema(type = "integer"),
+            example = "3",
+        ),
         Parameter(
             name = "sort",
             `in` = ParameterIn.QUERY,
@@ -69,19 +80,25 @@ class PopupListController(
     )
     @GetMapping
     fun findPopups(
-        @Parameter(description = "검색어. 이름 · 브랜드 · 도로명 주소 · 지번 주소 부분 일치(대소문자 무시). 생략하면 전체 목록.")
+        @Parameter(
+            description =
+                "검색어. 이름 · 브랜드 · 도로명 주소 · 지번 주소 · 지역(상권) 이름 부분 일치(대소문자 무시). " +
+                    "지역 이름이 맞으면 주소에 그 이름이 없어도 그 지역 팝업을 담는다(예: 홍대). 생략하면 전체 목록.",
+        )
         @RequestParam(required = false)
         keyword: String?,
+        @Parameter(hidden = true) @RequestParam(required = false) areaId: Int?,
         @Parameter(hidden = true) @RequestParam(required = false) sort: String?,
         @Parameter(hidden = true) @CursorDefault cursorable: Cursorable<String>,
     ): ResponseEntity<ApiResponse<PopupListPageResponse>> {
         val sortType = PopupSortType.from(sort)
         val cursor = cursorable.cursor?.takeIf { it.isNotBlank() }?.let { PopupListPageResponse.decodeCursor(it, sortType) }
-        val slice = popupListService.findPopups(keyword, sortType, Cursorable(cursor, cursorable.limit))
+        val slice = popupListService.findPopups(keyword, areaId, sortType, Cursorable(cursor, cursorable.limit))
 
         val categoryNames = popupListService.findCategoryNames()
+        val areaNames = popupListService.findAreaNames()
 
-        return ResponseEntity.ok(ApiResponse.success(PopupListPageResponse.from(slice, sortType, categoryNames)))
+        return ResponseEntity.ok(ApiResponse.success(PopupListPageResponse.from(slice, sortType, categoryNames, areaNames)))
     }
 
     @Operation(
@@ -96,8 +113,9 @@ class PopupListController(
     fun findPopularPopups(): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
         val popups = popupListService.findPopularPopups()
         val categoryNames = popupListService.findCategoryNames()
+        val areaNames = popupListService.findAreaNames()
 
-        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames) }))
+        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames, areaNames) }))
     }
 
     @Operation(
@@ -117,15 +135,16 @@ class PopupListController(
     ): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
         val popups = popupListService.findRecommendedPopups(member.memberKey)
         val categoryNames = popupListService.findCategoryNames()
+        val areaNames = popupListService.findAreaNames()
 
-        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames) }))
+        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames, areaNames) }))
     }
 
     @Operation(
         summary = "지도 팝업",
         description =
             "지도 화면 영역(남서 · 북동 좌표) 안의 노출 중인 팝업을 한 번에 조회한다. 로그인하지 않아도 조회할 수 있다.\n\n" +
-                "노출 조건(오픈했고 종료되지 않음)과 keyword 검색 조건은 목록 API 와 같고, 좌표가 영역 안(경계 포함)인 팝업만 담는다. " +
+                "노출 조건(오픈했고 종료되지 않음)과 keyword 검색 조건(지역 이름 포함)은 목록 API 와 같고, 좌표가 영역 안(경계 포함)인 팝업만 담는다. " +
                 "cursor · 정렬 · 페이지 없이 영역 안 마커를 모두 내려준다(서버 안전 상한 500건, 넘으면 조회수 많은 순으로 자른다).\n\n" +
                 "응답만으로 마커와 하단 카드를 그린다. 카드 표시용으로 상세 API 를 미리 호출하지 않는다(상세 API 는 조회수를 올린다). " +
                 "이 API 호출로는 조회수가 오르지 않는다.\n\n" +
@@ -139,7 +158,7 @@ class PopupListController(
     )
     @GetMapping("/map")
     fun findMapPopups(
-        @Parameter(description = "검색어. 목록 API 와 같다(이름 · 브랜드 · 도로명 주소 · 지번 주소 부분 일치). 생략하면 영역 안 전체.")
+        @Parameter(description = "검색어. 목록 API 와 같다(이름 · 브랜드 · 도로명 주소 · 지번 주소 · 지역 이름 부분 일치). 생략하면 영역 안 전체.")
         @RequestParam(required = false)
         keyword: String?,
         // 누락을 400 으로 응답하려고 선택 파라미터로 받아 MapBounds 에서 필수 여부를 검증한다.

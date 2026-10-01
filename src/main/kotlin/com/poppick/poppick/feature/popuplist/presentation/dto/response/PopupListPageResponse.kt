@@ -23,7 +23,7 @@ data class PopupListPageResponse(
     @field:Schema(
         description =
             "다음 페이지 요청의 cursor 파라미터에 그대로 넣는 값. hasNext 가 false 이면 null. " +
-                "서버 내부 형식이므로 해석하거나 직접 만들지 않는다. 같은 sort · keyword 요청에만 쓸 수 있다.",
+                "서버 내부 형식이므로 해석하거나 직접 만들지 않는다. 같은 sort · keyword · areaId 요청에만 쓸 수 있다.",
         example = "MjAyNi0wOS0yMDoxNzE1",
         nullable = true,
     )
@@ -34,8 +34,9 @@ data class PopupListPageResponse(
             slice: Slice<Popup>,
             sort: PopupSortType,
             categoryNames: Map<Int, String>,
+            areaNames: Map<Int, String>,
         ) = PopupListPageResponse(
-            content = slice.content.map { PopupListResponse.from(it, categoryNames) },
+            content = slice.content.map { PopupListResponse.from(it, categoryNames, areaNames) },
             hasNext = slice.hasNext,
             nextCursor =
                 slice.content

@@ -65,7 +65,7 @@ class PopupListIntegrationTest {
 
     @Test
     fun `keyword 없이 조회하면 노출 대상 팝업을 오픈일 최신순으로 반환한다`() {
-        val slice = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(null, 20))
+        val slice = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 20))
 
         printPage("keyword 없음, limit=20", slice.content, slice.hasNext)
         assumeTrue(slice.content.isNotEmpty(), "노출 중인 팝업이 없음")
@@ -77,8 +77,8 @@ class PopupListIntegrationTest {
 
     @Test
     fun `limit 만큼만 반환하고 남은 데이터가 있으면 hasNext 가 true 다`() {
-        val all = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(null, 50))
-        val slice = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(null, 3))
+        val all = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 50))
+        val slice = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 3))
 
         printPage("limit=3", slice.content, slice.hasNext)
 
@@ -88,11 +88,11 @@ class PopupListIntegrationTest {
 
     @Test
     fun `첫 페이지 마지막 팝업을 cursor 로 넘기면 정렬 순서상 그 다음부터 이어서 조회한다`() {
-        val first = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(null, 3))
+        val first = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 3))
         assumeTrue(first.hasNext, "다음 페이지가 없음(노출 중 팝업 3개 이하)")
 
         val cursor = PopupSearchCursor.Latest.of(first.content.last())
-        val second = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(cursor, 3))
+        val second = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(cursor, 3))
 
         printPage("1페이지 limit=3", first.content, first.hasNext)
         printPage("2페이지 cursor=$cursor limit=3", second.content, second.hasNext)
@@ -101,7 +101,7 @@ class PopupListIntegrationTest {
         (first.content.map { it.id } intersect second.content.map { it.id }.toSet()) shouldBe emptySet()
 
         // 두 페이지를 이어 붙인 결과는 limit=6 으로 한 번에 조회한 결과와 같아야 한다
-        val combined = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(null, 6))
+        val combined = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 6))
         (first.content + second.content).map { it.id } shouldBe combined.content.map { it.id }
     }
 
@@ -142,13 +142,13 @@ class PopupListIntegrationTest {
 
     @Test
     fun `DB 에 없는 popupId 가 담긴 cursor 도 값 기준으로 이어서 조회한다(삭제된 cursor 팝업)`() {
-        val first = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(null, 3))
+        val first = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 3))
         val startDate = first.content.lastOrNull()?.startDate
         assumeTrue(startDate != null, "오픈일 있는 노출 팝업이 없음")
 
         // 존재하지 않는 popupId: 같은 오픈일 구간의 모든 팝업보다 뒤(DESC 기준 앞)에 있던 팝업이 삭제된 상황
         val cursor = PopupSearchCursor.Latest(startDate, Long.MAX_VALUE)
-        val next = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(cursor, 50))
+        val next = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(cursor, 50))
         val expected = visibleInOrder().filter { it.isAfter(cursor) }.take(50)
 
         printPage("삭제된 cursor=$cursor", next.content, next.hasNext)
@@ -171,13 +171,13 @@ class PopupListIntegrationTest {
         val keyword =
             System.getenv("POPUP_TEST_KEYWORD")?.takeIf { it.isNotBlank() }
                 ?: popupListService
-                    .findPopups(null, PopupSortType.LATEST, Cursorable(null, 1))
+                    .findPopups(null, null, PopupSortType.LATEST, Cursorable(null, 1))
                     .content
                     .firstOrNull()
                     ?.title
         assumeTrue(keyword != null, "검색어로 쓸 팝업이 없음")
 
-        val slice = popupListService.findPopups(keyword, PopupSortType.LATEST, Cursorable(null, 20))
+        val slice = popupListService.findPopups(keyword, null, PopupSortType.LATEST, Cursorable(null, 20))
 
         printPage("keyword='$keyword'", slice.content, slice.hasNext)
         assumeTrue(slice.content.isNotEmpty(), "'$keyword' 검색 결과 없음")
@@ -193,7 +193,7 @@ class PopupListIntegrationTest {
 
     @Test
     fun `인기순은 노출 대상 팝업을 조회수 내림차순 · 같은 조회수는 popupId 내림차순으로 반환한다`() {
-        val slice = popupListService.findPopups(null, PopupSortType.POPULAR, Cursorable(null, 20))
+        val slice = popupListService.findPopups(null, null, PopupSortType.POPULAR, Cursorable(null, 20))
 
         printPage("sort=popular, limit=20", slice.content, slice.hasNext)
         assumeTrue(slice.content.isNotEmpty(), "노출 중인 팝업이 없음")
@@ -208,7 +208,7 @@ class PopupListIntegrationTest {
         val seen = mutableListOf<Popup>()
         var cursor: PopupSearchCursor.Popular? = null
         do {
-            val slice = popupListService.findPopups(null, PopupSortType.POPULAR, Cursorable(cursor, 7))
+            val slice = popupListService.findPopups(null, null, PopupSortType.POPULAR, Cursorable(cursor, 7))
             seen += slice.content
             cursor = slice.content.lastOrNull()?.let { PopupSearchCursor.Popular.of(it) }
         } while (slice.hasNext && cursor != null)
@@ -226,15 +226,15 @@ class PopupListIntegrationTest {
     @Test
     fun `인기순도 limit 만큼만 반환하고 노출 조건 · keyword 는 최신순과 같다`() {
         val latest = fetchAll(limit = 50).map { it.id }.toSet()
-        val popular = popupListService.findPopups(null, PopupSortType.POPULAR, Cursorable(null, 3))
+        val popular = popupListService.findPopups(null, null, PopupSortType.POPULAR, Cursorable(null, 3))
 
         popular.content.size shouldBe minOf(3, latest.size)
         popular.hasNext shouldBe (latest.size > 3)
 
         val keyword = popular.content.firstOrNull()?.title
         assumeTrue(keyword != null, "검색어로 쓸 팝업이 없음")
-        val latestHits = popupListService.findPopups(keyword, PopupSortType.LATEST, Cursorable(null, 50)).content
-        val popularHits = popupListService.findPopups(keyword, PopupSortType.POPULAR, Cursorable(null, 50)).content
+        val latestHits = popupListService.findPopups(keyword, null, PopupSortType.LATEST, Cursorable(null, 50)).content
+        val popularHits = popupListService.findPopups(keyword, null, PopupSortType.POPULAR, Cursorable(null, 50)).content
 
         printPage("keyword='$keyword' sort=popular", popularHits, false)
         popularHits.map { it.id }.toSet() shouldBe latestHits.map { it.id }.toSet()
@@ -245,7 +245,7 @@ class PopupListIntegrationTest {
     @Test
     fun `지금 인기 있는 팝업은 인기순 목록 첫 3개와 같고 노출 대상만 담는다`() {
         val top3 = popupListService.findPopularPopups()
-        val firstPage = popupListService.findPopups(null, PopupSortType.POPULAR, Cursorable(null, 3)).content
+        val firstPage = popupListService.findPopups(null, null, PopupSortType.POPULAR, Cursorable(null, 3)).content
 
         printPage("지금 인기 있는 팝업", top3, false)
         top3.size shouldBeLessThanOrEqual 3
@@ -288,7 +288,7 @@ class PopupListIntegrationTest {
             popupListService.findMapPopups(null, seoulBounds).firstOrNull()?.title
         assumeTrue(keyword != null, "지도에 표시할 팝업이 없음")
 
-        val listed = popupListService.findPopups(keyword, PopupSortType.LATEST, Cursorable(null, 50)).content
+        val listed = popupListService.findPopups(keyword, null, PopupSortType.LATEST, Cursorable(null, 50)).content
         val mapped = popupListService.findMapPopups(keyword, seoulBounds)
 
         mapped.map { it.id }.toSet() shouldBe listed.filter { it.latitude != null && it.longitude != null }.map { it.id }.toSet()
@@ -310,7 +310,7 @@ class PopupListIntegrationTest {
         val seen = mutableListOf<Popup>()
         var cursor = from
         do {
-            val slice = popupListService.findPopups(null, PopupSortType.LATEST, Cursorable(cursor, limit))
+            val slice = popupListService.findPopups(null, null, PopupSortType.LATEST, Cursorable(cursor, limit))
             seen += slice.content
             cursor = slice.content.lastOrNull()?.let { PopupSearchCursor.Latest.of(it) }
         } while (slice.hasNext && cursor != null)

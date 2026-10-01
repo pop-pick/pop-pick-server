@@ -123,7 +123,7 @@ class PopupListSortIntegrationTest {
         val seen = mutableListOf<Popup>()
         var cursor: PopupSearchCursor? = null
         do {
-            val slice = popupListService.findPopups(marker, sort, Cursorable(cursor, limit))
+            val slice = popupListService.findPopups(marker, null, sort, Cursorable(cursor, limit))
             seen += slice.content
             cursor = slice.content.lastOrNull()?.let { PopupSearchCursor.of(it, sort) }
         } while (slice.hasNext && cursor != null)
@@ -136,7 +136,7 @@ class PopupListSortIntegrationTest {
 
     @Test
     fun `인기순은 조회수 내림차순 · 같은 조회수는 popupId 내림차순이고 종료 · 오픈 전 팝업은 제외한다`() {
-        val page = popupListService.findPopups(marker, PopupSortType.POPULAR, Cursorable(null, 10))
+        val page = popupListService.findPopups(marker, null, PopupSortType.POPULAR, Cursorable(null, 10))
 
         names(page.content) shouldBe expectedPopular()
         page.content.map { it.viewCount } shouldBe listOf(5L, 3L, 3L, 0L, 0L)
@@ -150,9 +150,9 @@ class PopupListSortIntegrationTest {
 
     @Test
     fun `인기순 첫 페이지 nextCursor 위치는 (조회수, popupId) 이고 그 다음부터 이어진다`() {
-        val first = popupListService.findPopups(marker, PopupSortType.POPULAR, Cursorable(null, 2))
+        val first = popupListService.findPopups(marker, null, PopupSortType.POPULAR, Cursorable(null, 2))
         val cursor = PopupSearchCursor.Popular.of(first.content.last())
-        val second = popupListService.findPopups(marker, PopupSortType.POPULAR, Cursorable(cursor, 2))
+        val second = popupListService.findPopups(marker, null, PopupSortType.POPULAR, Cursorable(cursor, 2))
 
         first.hasNext shouldBe true
         cursor.viewCount shouldBe 3L
@@ -163,7 +163,7 @@ class PopupListSortIntegrationTest {
     fun `최신순은 기존대로 오픈일 최신순 · 오픈일 없음은 맨 뒤이며 cursor 로 이어도 같다`() {
         val expected = listOf("D", "B", "C", "A", "E")
 
-        names(popupListService.findPopups(marker, PopupSortType.LATEST, Cursorable(null, 10)).content) shouldBe expected
+        names(popupListService.findPopups(marker, null, PopupSortType.LATEST, Cursorable(null, 10)).content) shouldBe expected
         names(fetchAll(PopupSortType.LATEST, limit = 2)) shouldBe expected
     }
 
@@ -196,7 +196,7 @@ class PopupListSortIntegrationTest {
         top3.map { it.id } shouldBe listOf(openedToday, newer, older)
         top3.map { it.id }.none { it == ended || it == notYetOpened } shouldBe true
         top3.map { it.id } shouldBe
-            popupListService.findPopups(null, PopupSortType.POPULAR, Cursorable(null, 3)).content.map { it.id }
+            popupListService.findPopups(null, null, PopupSortType.POPULAR, Cursorable(null, 3)).content.map { it.id }
         jdbcTemplate.queryForList("SELECT popup_id, view_count FROM popup ORDER BY popup_id") shouldBe viewCountsBefore
     }
 

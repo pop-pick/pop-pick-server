@@ -37,11 +37,13 @@ class PopupListService(
         const val MAP_POPUP_LIMIT = 500
     }
 
+    /** keyword 는 이름 · 브랜드 · 주소에 더해 상권 이름(findKeywordAreaIds)으로도 찾는다. areaId 가 있으면 그 상권 팝업만(keyword 와 AND). */
     fun findPopups(
         keyword: String?,
+        areaId: Int?,
         sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
-    ) = popupListReader.findPopups(keyword, LocalDate.now(KST), sort, cursorable)
+    ) = popupListReader.findPopups(keyword, findKeywordAreaIds(keyword), areaId, LocalDate.now(KST), sort, cursorable)
 
     /**
      * 지금 인기 있는 팝업(최대 POPULAR_POPUP_COUNT 개). 목록 인기순(sort=popular)의 첫 페이지와 같은 조회다:
@@ -49,7 +51,7 @@ class PopupListService(
      */
     fun findPopularPopups(): List<Popup> =
         popupListReader
-            .findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, Cursorable(null, POPULAR_POPUP_COUNT))
+            .findPopups(null, emptyList(), null, LocalDate.now(KST), PopupSortType.POPULAR, Cursorable(null, POPULAR_POPUP_COUNT))
             .content
 
     /**
@@ -78,14 +80,14 @@ class PopupListService(
     }
 
     /**
-     * 지도 영역 안의 노출 중인 팝업(최대 MAP_POPUP_LIMIT 개). 노출 조건 · keyword 조건은 목록과 같다. 조회수는 올리지 않는다.
+     * 지도 영역 안의 노출 중인 팝업(최대 MAP_POPUP_LIMIT 개). 노출 조건 · keyword 조건(상권 이름 포함)은 목록과 같다. 조회수는 올리지 않는다.
      * 상한 초과 여부를 알기 위해 한 건 더 조회하고, 초과하면 WARN 후 상한만큼 돌려준다.
      */
     fun findMapPopups(
         keyword: String?,
         bounds: MapBounds,
     ): List<Popup> {
-        val popups = popupListReader.findMapPopups(keyword, LocalDate.now(KST), bounds, MAP_POPUP_LIMIT + 1)
+        val popups = popupListReader.findMapPopups(keyword, findKeywordAreaIds(keyword), LocalDate.now(KST), bounds, MAP_POPUP_LIMIT + 1)
         if (popups.size <= MAP_POPUP_LIMIT) return popups
 
         log.warn { "map: 지도 마커 상한($MAP_POPUP_LIMIT) 초과, 인기순 상위만 반환 bounds=$bounds keyword=$keyword" }
@@ -95,6 +97,15 @@ class PopupListService(
     /** 카테고리 id → 이름. 카드 뱃지 표시용이며, 요청마다 한 번만 조회해 모든 카드에 쓴다. */
     fun findCategoryNames(): Map<Int, String> = interestCategoryReader.findAll().associate { it.id to it.category }
 
-    /** 상권 id → 이름. 지도 카드 지역 뱃지용이며, 요청마다 한 번만 조회해 모든 카드에 쓴다. */
+    /** 상권 id → 이름. 목록 · 지도 카드 지역 뱃지용이며, 요청마다 한 번만 조회해 모든 카드에 쓴다. */
     fun findAreaNames(): Map<Int, String> = favoriteAreaReader.findAll().associate { it.id to it.area }
+
+    /**
+     * 이름이 keyword 와 부분 일치(대소문자 무시)하는 상권 id. 예: "홍" · "홍대" → 홍대.
+     * 주소에 상권 이름이 없어도 area_id 로 찾게 하려는 것이며, keyword 가 없으면 상권을 조회하지 않는다.
+     */
+    private fun findKeywordAreaIds(keyword: String?): List<Int> {
+        val trimmed = keyword?.trim()?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        return favoriteAreaReader.findAll().filter { it.area.contains(trimmed, ignoreCase = true) }.map { it.id }
+    }
 }

@@ -46,6 +46,7 @@ class PopupListControllerTest :
         beforeEach {
             clearMocks(service)
             every { service.findCategoryNames() } returns mapOf(1 to "캐릭터/IP", 5 to "뷰티")
+            every { service.findAreaNames() } returns mapOf(3 to "홍대")
         }
 
         val popups =
@@ -57,6 +58,7 @@ class PopupListControllerTest :
                     startDate = LocalDate.of(2026, 9, 25),
                     viewCount = 10,
                     interestCategoryId = 1,
+                    areaId = 3,
                 ),
                 Popup(id = 1715, source = SourceType.KAKAO_MAP, title = "팝업 1715", startDate = LocalDate.of(2026, 9, 20), viewCount = 7),
             )
@@ -65,8 +67,8 @@ class PopupListControllerTest :
         val cursorable = slot<Cursorable<PopupSearchCursor>>()
 
         fun stubService(hasNext: Boolean = true) {
-            every { service.findPopups(any(), capture(sort), capture(cursorable)) } answers {
-                Slice(popups, thirdArg<Cursorable<PopupSearchCursor>>(), hasNext)
+            every { service.findPopups(any(), any(), capture(sort), capture(cursorable)) } answers {
+                Slice(popups, arg<Cursorable<PopupSearchCursor>>(3), hasNext)
             }
         }
 
@@ -120,6 +122,34 @@ class PopupListControllerTest :
             sort.captured shouldBe PopupSortType.POPULAR
         }
 
+        test("areaId 를 지역 필터로 keyword · sort 와 함께 넘기고, 생략하면 null 이다") {
+            stubService()
+
+            mockMvc.getJson("/api/v1/popups?areaId=3&keyword=캐릭터&sort=popular", 200)
+            mockMvc.getJson("/api/v1/popups", 200)
+
+            verify(exactly = 1) { service.findPopups("캐릭터", 3, PopupSortType.POPULAR, any()) }
+            verify(exactly = 1) { service.findPopups(null, null, PopupSortType.LATEST, any()) }
+        }
+
+        test("areaId 가 숫자가 아니면 400 이고 조회하지 않는다") {
+            mockMvc.getJson("/api/v1/popups?areaId=hongdae", 400)
+
+            verify(exactly = 0) { service.findPopups(any(), any(), any(), any()) }
+        }
+
+        test("목록 카드에 지역 id · 이름을 담고(없으면 null), 이름 조회는 요청당 1번이다") {
+            stubService()
+
+            val content = mockMvc.getJson("/api/v1/popups", 200)["data"]["content"].toList()
+
+            content[0]["areaId"].asInt() shouldBe 3
+            content[0]["areaName"].asString() shouldBe "홍대"
+            content[1]["areaId"].isNull shouldBe true
+            content[1]["areaName"].isNull shouldBe true
+            verify(exactly = 1) { service.findAreaNames() }
+        }
+
         test("목록 응답에는 viewCount 를 노출하지 않는다") {
             stubService()
 
@@ -133,7 +163,7 @@ class PopupListControllerTest :
 
             json["resultType"].asString() shouldBe "ERROR"
             json["error"]["errorCode"].asString() shouldBe "E400"
-            verify(exactly = 0) { service.findPopups(any(), any(), any()) }
+            verify(exactly = 0) { service.findPopups(any(), any(), any(), any()) }
         }
 
         test("인기순 cursor 를 sort=popular 로 보내면 Popular cursor 로 이어서 조회한다") {
@@ -152,14 +182,14 @@ class PopupListControllerTest :
             val latest = PopupListPageResponse.encodeCursor(PopupSearchCursor.Latest(LocalDate.of(2026, 9, 20), 1715))
 
             mockMvc.getJson("/api/v1/popups?sort=popular&cursor=$latest", 400)["error"]["errorCode"].asString() shouldBe "E400"
-            verify(exactly = 0) { service.findPopups(any(), any(), any()) }
+            verify(exactly = 0) { service.findPopups(any(), any(), any(), any()) }
         }
 
         test("인기순 cursor 를 sort 없이(최신순) 보내면 400 이고 조회하지 않는다") {
             val popular = PopupListPageResponse.encodeCursor(PopupSearchCursor.Popular(7, 1715))
 
             mockMvc.getJson("/api/v1/popups?cursor=$popular", 400)["error"]["errorCode"].asString() shouldBe "E400"
-            verify(exactly = 0) { service.findPopups(any(), any(), any()) }
+            verify(exactly = 0) { service.findPopups(any(), any(), any(), any()) }
         }
 
         test("keyword 와 sort=popular 를 함께 넘긴다") {
@@ -167,7 +197,7 @@ class PopupListControllerTest :
 
             mockMvc.getJson("/api/v1/popups?keyword=성수&sort=popular", 200)
 
-            verify(exactly = 1) { service.findPopups("성수", PopupSortType.POPULAR, any()) }
+            verify(exactly = 1) { service.findPopups("성수", null, PopupSortType.POPULAR, any()) }
         }
 
         test("목록 카드에 카테고리 이름을 담고(없으면 null), 이름 조회는 요청당 1번이다") {
@@ -195,9 +225,19 @@ class PopupListControllerTest :
                 json["data"].isArray shouldBe true
                 json["data"].toList().map { it["popupId"].asLong() } shouldBe listOf(1720L, 1715L)
                 json["data"][0].propertyNames().toSet() shouldBe
-                    setOf("popupId", "imageUrl", "interestCategoryId", "interestCategoryName", "title", "endDate", "reservationType")
+                    setOf(
+                        "popupId",
+                        "imageUrl",
+                        "interestCategoryId",
+                        "interestCategoryName",
+                        "areaId",
+                        "areaName",
+                        "title",
+                        "endDate",
+                        "reservationType",
+                    )
                 verify(exactly = 1) { service.findPopularPopups() }
-                verify(exactly = 0) { service.findPopups(any(), any(), any()) }
+                verify(exactly = 0) { service.findPopups(any(), any(), any(), any()) }
             }
 
             test("인기 카드에도 카테고리 이름을 담고, 이름 조회는 요청당 1번이다") {
@@ -229,6 +269,7 @@ class PopupListControllerTest :
                 every { service.findPopularPopups() } returns popups
                 every { detailService.findPopupDetail(1715L, any()) } returns popups[1]
                 every { detailService.findCategoryNames() } returns emptyMap()
+                every { detailService.findAreaNames() } returns emptyMap()
                 val bothControllers =
                     MockMvcBuilders
                         .standaloneSetup(PopupListController(service), PopupDetailController(detailService))

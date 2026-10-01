@@ -83,6 +83,7 @@ class PopupListSecurityTest {
                 startDate = LocalDate.of(2026, 9, 25),
                 viewCount = 10,
                 interestCategoryId = 1,
+                areaId = 3,
             ),
             Popup(id = 1715, source = SourceType.KAKAO_MAP, title = "팝업 1715", viewCount = 7),
         )
@@ -91,6 +92,7 @@ class PopupListSecurityTest {
     fun setUp() {
         clearMocks(popupListService, popupDetailService)
         every { popupListService.findCategoryNames() } returns mapOf(1 to "캐릭터/IP")
+        every { popupListService.findAreaNames() } returns mapOf(3 to "홍대")
     }
 
     private fun MockHttpServletRequestBuilder.asMember() =
@@ -123,6 +125,9 @@ class PopupListSecurityTest {
             .andExpect(jsonPath("$.data[0].popupId").value(1720))
             .andExpect(jsonPath("$.data[0].interestCategoryId").value(1))
             .andExpect(jsonPath("$.data[0].interestCategoryName").value("캐릭터/IP"))
+            .andExpect(jsonPath("$.data[0].areaId").value(3))
+            .andExpect(jsonPath("$.data[0].areaName").value("홍대"))
+            .andExpect(jsonPath("$.data[1].areaName").doesNotExist())
             .andExpect(jsonPath("$.data[0].viewCount").doesNotExist())
             .andExpect(jsonPath("$.data[1].popupId").value(1715))
             .andExpect(jsonPath("$.data[1].interestCategoryName").doesNotExist())
@@ -134,15 +139,16 @@ class PopupListSecurityTest {
 
     @Test
     fun `목록 · 인기 · 지도 · 상세는 기존처럼 비회원도 200`() {
-        every { popupListService.findPopups(any(), any(), any()) } answers { Slice(popups, thirdArg(), false) }
+        every { popupListService.findPopups(any(), any(), any(), any()) } answers { Slice(popups, arg(3), false) }
         every { popupListService.findPopularPopups() } returns popups
         every { popupListService.findMapPopups(any(), any()) } returns listOf(popups[0].copy(latitude = 37.55, longitude = 127.0))
-        every { popupListService.findAreaNames() } returns emptyMap()
         every { popupDetailService.findPopupDetail(1715L, any()) } returns popups[1]
         every { popupDetailService.findCategoryNames() } returns emptyMap()
+        every { popupDetailService.findAreaNames() } returns emptyMap()
 
         listOf(
             get("/api/v1/popups"),
+            get("/api/v1/popups?areaId=3&keyword=홍대"),
             get("/api/v1/popups/popular"),
             get("/api/v1/popups/map?swLat=37.5&swLng=126.9&neLat=37.6&neLng=127.1"),
             get("/api/v1/popups/1715"),

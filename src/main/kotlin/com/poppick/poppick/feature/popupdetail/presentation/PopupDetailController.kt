@@ -43,8 +43,9 @@ class PopupDetailController(
         val viewer = authMember?.let { PopupViewer.member(it.member.memberKey) } ?: request.anonymousViewer()
         val popup = popupDetailService.findPopupDetail(popupId, viewer)
         val categoryNames = popupDetailService.findCategoryNames()
+        val areaNames = popupDetailService.findAreaNames()
 
-        return ResponseEntity.ok(ApiResponse.success(PopupDetailResponse.from(popup, categoryNames)))
+        return ResponseEntity.ok(ApiResponse.success(PopupDetailResponse.from(popup, categoryNames, areaNames)))
     }
 
     private fun HttpServletRequest.anonymousViewer() =

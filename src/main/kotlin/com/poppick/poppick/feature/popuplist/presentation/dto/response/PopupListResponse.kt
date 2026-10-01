@@ -10,20 +10,26 @@ data class PopupListResponse(
     val interestCategoryId: Int?,
     /** 카테고리 이름(뱃지 표시용). 카테고리가 없거나 알 수 없는 id 면 null. */
     val interestCategoryName: String?,
+    val areaId: Int?,
+    /** 상권 이름(지역 뱃지 표시용). 상권이 없거나 알 수 없는 id 면 null. */
+    val areaName: String?,
     val title: String,
     val endDate: LocalDate?,
     val reservationType: ReservationType,
 ) {
     companion object {
-        /** categoryNames 는 카테고리 id → 이름. */
+        /** categoryNames · areaNames 는 id → 이름. */
         fun from(
             popup: Popup,
             categoryNames: Map<Int, String>,
+            areaNames: Map<Int, String>,
         ) = PopupListResponse(
             popupId = popup.id!!,
             imageUrl = popup.imageUrls?.firstOrNull(),
             interestCategoryId = popup.interestCategoryId,
             interestCategoryName = popup.interestCategoryId?.let { categoryNames[it] },
+            areaId = popup.areaId,
+            areaName = popup.areaId?.let { areaNames[it] },
             title = popup.title,
             endDate = popup.endDate,
             reservationType = popup.reservationType,

@@ -35,21 +35,21 @@ class PopupListServiceTest :
             val popups = listOf(popup(3, 9), popup(2, 5), popup(1, 5))
             val reader =
                 mockk<PopupListReader> {
-                    every { findPopups(null, any(), PopupSortType.POPULAR, top3Cursorable) } answers {
+                    every { findPopups(null, emptyList(), null, any(), PopupSortType.POPULAR, top3Cursorable) } answers {
                         Slice(popups, top3Cursorable, hasNext = true)
                     }
                 }
 
             PopupListService(reader, mockk(), mockk(), mockk()).findPopularPopups() shouldBe popups
 
-            verify(exactly = 1) { reader.findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
+            verify(exactly = 1) { reader.findPopups(null, emptyList(), null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
         }
 
         test("노출 대상이 3개보다 적으면 있는 만큼만 돌려준다") {
             val popups = listOf(popup(2, 1), popup(1, 0))
             val reader =
                 mockk<PopupListReader> {
-                    every { findPopups(null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
+                    every { findPopups(null, emptyList(), null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
                         Slice(popups, top3Cursorable, hasNext = false)
                 }
 
@@ -59,7 +59,7 @@ class PopupListServiceTest :
         test("노출 대상이 없으면 빈 목록") {
             val reader =
                 mockk<PopupListReader> {
-                    every { findPopups(null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
+                    every { findPopups(null, emptyList(), null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
                         Slice(emptyList(), top3Cursorable, hasNext = false)
                 }
 
@@ -88,19 +88,20 @@ class PopupListServiceTest :
                 val popups = listOf(popup(2, 5), popup(1, 0))
                 val reader =
                     mockk<PopupListReader> {
-                        every { findMapPopups("성수", any(), bounds, PopupListService.MAP_POPUP_LIMIT + 1) } returns popups
+                        every { findMapPopups("성수", any(), any(), bounds, PopupListService.MAP_POPUP_LIMIT + 1) } returns popups
                     }
+                val areaReader = mockk<FavoriteAreaReader> { every { findAll() } returns listOf(FavoriteArea(1, "성수")) }
 
-                PopupListService(reader, mockk(), mockk(), mockk()).findMapPopups("성수", bounds) shouldBe popups
+                PopupListService(reader, mockk(), areaReader, mockk()).findMapPopups("성수", bounds) shouldBe popups
 
                 verify(exactly = 1) {
-                    reader.findMapPopups("성수", LocalDate.now(KST), bounds, PopupListService.MAP_POPUP_LIMIT + 1)
+                    reader.findMapPopups("성수", listOf(1), LocalDate.now(KST), bounds, PopupListService.MAP_POPUP_LIMIT + 1)
                 }
             }
 
             test("상한을 넘으면 상한 건수만 돌려준다(조회 순서 = 인기순 그대로)") {
                 val over = (1..PopupListService.MAP_POPUP_LIMIT + 1).map { popup(it.toLong(), 0) }
-                val reader = mockk<PopupListReader> { every { findMapPopups(null, any(), bounds, any()) } returns over }
+                val reader = mockk<PopupListReader> { every { findMapPopups(null, emptyList(), any(), bounds, any()) } returns over }
 
                 val result = PopupListService(reader, mockk(), mockk(), mockk()).findMapPopups(null, bounds)
 
@@ -109,7 +110,7 @@ class PopupListServiceTest :
             }
 
             test("결과가 없으면 빈 목록") {
-                val reader = mockk<PopupListReader> { every { findMapPopups(any(), any(), bounds, any()) } returns emptyList() }
+                val reader = mockk<PopupListReader> { every { findMapPopups(any(), any(), any(), bounds, any()) } returns emptyList() }
 
                 PopupListService(reader, mockk(), mockk(), mockk()).findMapPopups(null, bounds) shouldBe emptyList()
             }
@@ -139,7 +140,7 @@ class PopupListServiceTest :
                 popular: List<Popup> = emptyList(),
             ) = mockk<PopupListReader> {
                 every { findPreferredPopups(any(), any(), any(), any()) } returns preferred
-                every { findPopups(null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
+                every { findPopups(null, emptyList(), null, any(), PopupSortType.POPULAR, top3Cursorable) } returns
                     Slice(popular, top3Cursorable, hasNext = false)
             }
 
@@ -158,7 +159,7 @@ class PopupListServiceTest :
                 verify(exactly = 1) {
                     reader.findPreferredPopups(listOf(1, 5), listOf(2), LocalDate.now(KST), PopupListService.RECOMMENDED_POPUP_COUNT)
                 }
-                verify(exactly = 0) { reader.findPopups(any(), any(), any(), any()) }
+                verify(exactly = 0) { reader.findPopups(any(), any(), any(), any(), any(), any()) }
             }
 
             test("선호 활동(preferredActivityIds)은 조건에 쓰지 않는다") {
@@ -192,7 +193,9 @@ class PopupListServiceTest :
                 service(reader, preference(activityIds = listOf(1))).findRecommendedPopups("member-1") shouldBe popular
 
                 verify(exactly = 0) { reader.findPreferredPopups(any(), any(), any(), any()) }
-                verify(exactly = 1) { reader.findPopups(null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
+                verify(
+                    exactly = 1,
+                ) { reader.findPopups(null, emptyList(), null, LocalDate.now(KST), PopupSortType.POPULAR, top3Cursorable) }
             }
 
             test("일치 팝업이 없으면 인기 Top3") {
@@ -235,6 +238,85 @@ class PopupListServiceTest :
 
             test("추천 팝업 개수는 3") {
                 PopupListService.RECOMMENDED_POPUP_COUNT shouldBe 3
+            }
+        }
+
+        context("지역(상권) 검색 · 필터") {
+            val areas = listOf(FavoriteArea(1, "성수"), FavoriteArea(3, "홍대"), FavoriteArea(7, "강남"))
+            val cursorable = Cursorable<PopupSearchCursor>(null, 10)
+
+            fun listReader() =
+                mockk<PopupListReader> {
+                    every { findPopups(any(), any(), any(), any(), any(), any()) } answers {
+                        Slice(emptyList(), cursorable, hasNext = false)
+                    }
+                    every { findMapPopups(any(), any(), any(), any(), any()) } returns emptyList()
+                }
+
+            test("keyword 와 이름이 부분 일치하는 상권 id 를 함께 넘긴다(홍 · 홍대 → 홍대, 앞뒤 공백 무시)") {
+                listOf("홍대", "홍", " 홍대 ").forEach { keyword ->
+                    val reader = listReader()
+                    val areaReader = mockk<FavoriteAreaReader> { every { findAll() } returns areas }
+
+                    PopupListService(reader, mockk(), areaReader, mockk()).findPopups(keyword, null, PopupSortType.LATEST, cursorable)
+
+                    verify(exactly = 1) {
+                        reader.findPopups(keyword, listOf(3), null, LocalDate.now(KST), PopupSortType.LATEST, cursorable)
+                    }
+                    verify(exactly = 1) { areaReader.findAll() }
+                }
+            }
+
+            test("상권 이름과 맞지 않는 keyword 면 상권 id 는 빈 목록") {
+                val reader = listReader()
+                val areaReader = mockk<FavoriteAreaReader> { every { findAll() } returns areas }
+
+                PopupListService(reader, mockk(), areaReader, mockk()).findPopups("캐릭터", null, PopupSortType.POPULAR, cursorable)
+
+                verify(exactly = 1) { reader.findPopups("캐릭터", emptyList(), null, any(), PopupSortType.POPULAR, cursorable) }
+            }
+
+            test("keyword 가 없거나 공백이면 상권을 조회하지 않는다") {
+                listOf(null, "", "  ").forEach { keyword ->
+                    val reader = listReader()
+                    val areaReader = mockk<FavoriteAreaReader>()
+
+                    PopupListService(reader, mockk(), areaReader, mockk()).findPopups(keyword, null, PopupSortType.LATEST, cursorable)
+
+                    verify(exactly = 1) { reader.findPopups(keyword, emptyList(), null, any(), any(), any()) }
+                    verify(exactly = 0) { areaReader.findAll() }
+                }
+            }
+
+            test("areaId 지역 필터는 keyword 와 함께 그대로 넘긴다") {
+                val reader = listReader()
+                val areaReader = mockk<FavoriteAreaReader> { every { findAll() } returns areas }
+
+                PopupListService(reader, mockk(), areaReader, mockk()).findPopups("캐릭터", 3, PopupSortType.LATEST, cursorable)
+                PopupListService(reader, mockk(), areaReader, mockk()).findPopups(null, 3, PopupSortType.POPULAR, cursorable)
+
+                verify(exactly = 1) { reader.findPopups("캐릭터", emptyList(), 3, any(), PopupSortType.LATEST, cursorable) }
+                verify(exactly = 1) { reader.findPopups(null, emptyList(), 3, any(), PopupSortType.POPULAR, cursorable) }
+            }
+
+            test("지도 keyword 도 목록과 같은 상권 이름 검색을 쓴다") {
+                val reader = listReader()
+                val areaReader = mockk<FavoriteAreaReader> { every { findAll() } returns areas }
+                val bounds = MapBounds(37.5, 126.9, 37.6, 127.1)
+
+                PopupListService(reader, mockk(), areaReader, mockk()).findMapPopups("홍대", bounds)
+
+                verify(exactly = 1) {
+                    reader.findMapPopups("홍대", listOf(3), LocalDate.now(KST), bounds, PopupListService.MAP_POPUP_LIMIT + 1)
+                }
+            }
+
+            test("인기 팝업은 keyword · 지역 조건 없이 조회한다") {
+                val reader = listReader()
+
+                PopupListService(reader, mockk(), mockk(), mockk()).findPopularPopups()
+
+                verify(exactly = 1) { reader.findPopups(null, emptyList(), null, any(), PopupSortType.POPULAR, any()) }
             }
         }
     })

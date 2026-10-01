@@ -73,6 +73,7 @@ class PopupListPageResponseTest :
                     slice(listOf(popup(1720, LocalDate.of(2026, 9, 25)), last), hasNext = true),
                     PopupSortType.LATEST,
                     emptyMap(),
+                    emptyMap(),
                 )
 
             response.content.map { it.popupId } shouldBe listOf(1720L, 1715L)
@@ -82,7 +83,13 @@ class PopupListPageResponseTest :
         }
 
         test("마지막 팝업의 오픈일이 없으면 nextCursor 는 오픈일 없는 구간 cursor 다") {
-            val response = PopupListPageResponse.from(slice(listOf(popup(1703, null)), hasNext = true), PopupSortType.LATEST, emptyMap())
+            val response =
+                PopupListPageResponse.from(
+                    slice(listOf(popup(1703, null)), hasNext = true),
+                    PopupSortType.LATEST,
+                    emptyMap(),
+                    emptyMap(),
+                )
 
             PopupListPageResponse.decodeCursor(response.nextCursor!!, PopupSortType.LATEST) shouldBe PopupSearchCursor.Latest(null, 1703)
         }
@@ -96,10 +103,25 @@ class PopupListPageResponseTest :
                     popup(1, null).copy(interestCategoryId = 99),
                 )
 
-            val content = PopupListPageResponse.from(slice(popups, hasNext = false), PopupSortType.LATEST, names).content
+            val content = PopupListPageResponse.from(slice(popups, hasNext = false), PopupSortType.LATEST, names, emptyMap()).content
 
             content.map { it.interestCategoryId } shouldBe listOf(1, null, 99)
             content.map { it.interestCategoryName } shouldBe listOf("캐릭터/IP", null, null)
+        }
+
+        test("카드에 지역 id · 이름을 담고, 지역이 없거나 알 수 없는 id 면 이름은 null 이다(임의 값 없음)") {
+            val popups =
+                listOf(
+                    popup(3, null).copy(areaId = 3),
+                    popup(2, null).copy(areaId = null),
+                    popup(1, null).copy(areaId = 99),
+                )
+
+            val content =
+                PopupListPageResponse.from(slice(popups, hasNext = false), PopupSortType.LATEST, emptyMap(), mapOf(3 to "홍대")).content
+
+            content.map { it.areaId } shouldBe listOf(3, null, 99)
+            content.map { it.areaName } shouldBe listOf("홍대", null, null)
         }
 
         test("hasNext 가 false 이거나 결과가 없으면 nextCursor 는 null 이다") {
@@ -108,9 +130,17 @@ class PopupListPageResponseTest :
                     slice(listOf(popup(1715, null)), hasNext = false),
                     PopupSortType.LATEST,
                     emptyMap(),
+                    emptyMap(),
                 ).nextCursor shouldBe
                 null
-            PopupListPageResponse.from(slice(emptyList(), hasNext = false), PopupSortType.LATEST, emptyMap()).nextCursor shouldBe null
+            PopupListPageResponse
+                .from(
+                    slice(emptyList(), hasNext = false),
+                    PopupSortType.LATEST,
+                    emptyMap(),
+                    emptyMap(),
+                ).nextCursor shouldBe
+                null
         }
 
         context("인기순 cursor") {
@@ -134,7 +164,13 @@ class PopupListPageResponseTest :
                 val first = popup(1720, null).copy(viewCount = 10)
                 val last = popup(1715, LocalDate.of(2026, 9, 20)).copy(viewCount = 7)
 
-                val response = PopupListPageResponse.from(slice(listOf(first, last), hasNext = true), PopupSortType.POPULAR, emptyMap())
+                val response =
+                    PopupListPageResponse.from(
+                        slice(listOf(first, last), hasNext = true),
+                        PopupSortType.POPULAR,
+                        emptyMap(),
+                        emptyMap(),
+                    )
 
                 response.content.map { it.popupId } shouldBe listOf(1720L, 1715L)
                 PopupListPageResponse.decodeCursor(response.nextCursor!!, PopupSortType.POPULAR) shouldBe

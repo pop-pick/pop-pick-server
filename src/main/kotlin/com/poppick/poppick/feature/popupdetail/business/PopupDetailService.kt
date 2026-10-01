@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.popupdetail.business
 
+import com.poppick.poppick.feature.member.implement.FavoriteAreaReader
 import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popupdetail.domain.PopupViewer
@@ -12,6 +13,7 @@ class PopupDetailService(
     private val popupDetailReader: PopupDetailReader,
     private val popupViewCounter: PopupViewCounter,
     private val interestCategoryReader: InterestCategoryReader,
+    private val favoriteAreaReader: FavoriteAreaReader,
 ) {
     /**
      * 팝업을 읽은 뒤(없으면 NOT_FOUND_DATA, 조회수 증가 없음) 조회수를 반영한다.
@@ -29,4 +31,7 @@ class PopupDetailService(
 
     /** 카테고리 id → 이름. 상세 뱃지 표시용. */
     fun findCategoryNames(): Map<Int, String> = interestCategoryReader.findAll().associate { it.id to it.category }
+
+    /** 상권 id → 이름. 상세 지역 뱃지 표시용. */
+    fun findAreaNames(): Map<Int, String> = favoriteAreaReader.findAll().associate { it.id to it.area }
 }

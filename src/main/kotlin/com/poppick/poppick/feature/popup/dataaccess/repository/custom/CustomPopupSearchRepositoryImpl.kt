@@ -17,6 +17,8 @@ class CustomPopupSearchRepositoryImpl :
     CustomPopupSearchRepository {
     override fun findPopups(
         keyword: String?,
+        keywordAreaIds: Collection<Int>,
+        areaId: Int?,
         today: LocalDate,
         sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
@@ -25,7 +27,8 @@ class CustomPopupSearchRepositoryImpl :
             selectFrom(popupEntity)
                 .where(
                     visible(today),
-                    containsKeyword(keyword),
+                    containsKeyword(keyword, keywordAreaIds),
+                    areaIs(areaId),
                     cursorable.cursor?.let { afterCursor(sort, it) },
                 ).orderBy(*orderOf(sort))
                 .limit(cursorable.limit + 1L)
@@ -37,6 +40,7 @@ class CustomPopupSearchRepositoryImpl :
 
     override fun findMapPopups(
         keyword: String?,
+        keywordAreaIds: Collection<Int>,
         today: LocalDate,
         bounds: MapBounds,
         limit: Int,
@@ -44,7 +48,7 @@ class CustomPopupSearchRepositoryImpl :
         selectFrom(popupEntity)
             .where(
                 visible(today),
-                containsKeyword(keyword),
+                containsKeyword(keyword, keywordAreaIds),
                 within(bounds),
             ).orderBy(*orderOf(PopupSortType.POPULAR))
             .limit(limit.toLong())
@@ -91,14 +95,23 @@ class CustomPopupSearchRepositoryImpl :
             .and(popupEntity.latitude.between(bounds.swLat, bounds.neLat))
             .and(popupEntity.longitude.between(bounds.swLng, bounds.neLng))
 
-    private fun containsKeyword(keyword: String?): BooleanExpression? =
+    /** 이름 · 브랜드 · 주소 부분 일치 OR 이름이 keyword 와 맞는 상권(keywordAreaIds). keyword 가 없으면 조건 없음. */
+    private fun containsKeyword(
+        keyword: String?,
+        keywordAreaIds: Collection<Int>,
+    ): BooleanExpression? =
         keyword?.trim()?.takeIf { it.isNotEmpty() }?.let {
-            popupEntity.title
-                .containsIgnoreCase(it)
-                .or(popupEntity.brand.containsIgnoreCase(it))
-                .or(popupEntity.addressRoad.containsIgnoreCase(it))
-                .or(popupEntity.addressJibun.containsIgnoreCase(it))
+            val text =
+                popupEntity.title
+                    .containsIgnoreCase(it)
+                    .or(popupEntity.brand.containsIgnoreCase(it))
+                    .or(popupEntity.addressRoad.containsIgnoreCase(it))
+                    .or(popupEntity.addressJibun.containsIgnoreCase(it))
+            if (keywordAreaIds.isEmpty()) text else text.or(popupEntity.areaId.`in`(keywordAreaIds))
         }
+
+    /** 목록 지역 필터. areaId 가 없으면 조건 없음. */
+    private fun areaIs(areaId: Int?): BooleanExpression? = areaId?.let { popupEntity.areaId.eq(it) }
 
     private fun orderOf(sort: PopupSortType): Array<OrderSpecifier<*>> =
         when (sort) {

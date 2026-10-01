@@ -11,13 +11,14 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 private val CATEGORY_NAMES = mapOf(1 to "캐릭터/IP", 3 to "F&B", 8 to "기타")
+private val AREA_NAMES = mapOf(1 to "성수", 3 to "홍대")
 
 class PopupDetailResponseTest :
     FunSpec({
         test("팝업의 상세 필드를 모두 그대로 옮긴다") {
             val popup = PopupDetailFixtures.fullPopup(id = 1L)
 
-            val response = PopupDetailResponse.from(popup, CATEGORY_NAMES)
+            val response = PopupDetailResponse.from(popup, CATEGORY_NAMES, AREA_NAMES)
 
             with(response) {
                 popupId shouldBe 1L
@@ -50,20 +51,42 @@ class PopupDetailResponseTest :
                 .from(
                     PopupDetailFixtures.fullPopup().copy(interestCategoryId = null),
                     CATEGORY_NAMES,
+                    AREA_NAMES,
                 ).interestCategoryName shouldBe
                 null
-            with(PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(interestCategoryId = 99), CATEGORY_NAMES)) {
+            with(PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(interestCategoryId = 99), CATEGORY_NAMES, AREA_NAMES)) {
                 interestCategoryId shouldBe 99
                 interestCategoryName shouldBe null
             }
         }
 
+        test("지역 id · 이름을 담고, 지역이 없거나 이름 목록에 없는 id 면 이름은 null 이다(임의 값 없음)") {
+            with(PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(areaId = 3), CATEGORY_NAMES, AREA_NAMES)) {
+                areaId shouldBe 3
+                areaName shouldBe "홍대"
+            }
+            with(PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(areaId = null), CATEGORY_NAMES, AREA_NAMES)) {
+                areaId shouldBe null
+                areaName shouldBe null
+            }
+            with(PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(areaId = 99), CATEGORY_NAMES, AREA_NAMES)) {
+                areaId shouldBe 99
+                areaName shouldBe null
+            }
+        }
+
         test("조회수는 팝업의 viewCount 를 그대로 내려준다") {
-            PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(viewCount = 12_000L), CATEGORY_NAMES).viewCount shouldBe 12_000L
+            PopupDetailResponse
+                .from(
+                    PopupDetailFixtures.fullPopup().copy(viewCount = 12_000L),
+                    CATEGORY_NAMES,
+                    AREA_NAMES,
+                ).viewCount shouldBe
+                12_000L
         }
 
         test("보강 전 팝업은 nullable 필드를 null 로, 입장 방식은 UNKNOWN 으로 내려준다") {
-            val response = PopupDetailResponse.from(PopupDetailFixtures.minimalPopup(id = 2L), CATEGORY_NAMES)
+            val response = PopupDetailResponse.from(PopupDetailFixtures.minimalPopup(id = 2L), CATEGORY_NAMES, AREA_NAMES)
 
             response shouldBe
                 PopupDetailResponse(
@@ -74,6 +97,8 @@ class PopupDetailResponseTest :
                     imageUrls = null,
                     interestCategoryId = null,
                     interestCategoryName = null,
+                    areaId = null,
+                    areaName = null,
                     startDate = null,
                     endDate = null,
                     openingHours = null,
@@ -102,7 +127,7 @@ class PopupDetailResponseTest :
                     reservationOpenAt = null,
                 )
 
-            val response = PopupDetailResponse.from(popup, CATEGORY_NAMES)
+            val response = PopupDetailResponse.from(popup, CATEGORY_NAMES, AREA_NAMES)
 
             response.startDate shouldBe LocalDate.of(2026, 9, 10)
             response.endDate shouldBe null
@@ -114,13 +139,13 @@ class PopupDetailResponseTest :
         }
 
         test("입장료 0(무료)은 null(미확인)과 구분해 0 으로 내려준다") {
-            PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(entryFee = 0), CATEGORY_NAMES).entryFee shouldBe 0
+            PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(entryFee = 0), CATEGORY_NAMES, AREA_NAMES).entryFee shouldBe 0
         }
 
         test("빈 목록은 null 로 바꾸지 않고 빈 목록 그대로 내려준다") {
             val popup = PopupDetailFixtures.fullPopup().copy(imageUrls = emptyList(), tags = emptyList())
 
-            val response = PopupDetailResponse.from(popup, CATEGORY_NAMES)
+            val response = PopupDetailResponse.from(popup, CATEGORY_NAMES, AREA_NAMES)
 
             response.imageUrls shouldBe emptyList()
             response.tags shouldBe emptyList()
@@ -128,7 +153,7 @@ class PopupDetailResponseTest :
 
         test("저장 전(id 없는) 팝업은 변환하지 않는다") {
             shouldThrow<IllegalArgumentException> {
-                PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(id = null), CATEGORY_NAMES)
+                PopupDetailResponse.from(PopupDetailFixtures.fullPopup().copy(id = null), CATEGORY_NAMES, AREA_NAMES)
             }
         }
     })

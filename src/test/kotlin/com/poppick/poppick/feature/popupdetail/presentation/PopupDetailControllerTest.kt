@@ -38,6 +38,8 @@ private val NULLABLE_FIELDS =
         "imageUrls",
         "interestCategoryId",
         "interestCategoryName",
+        "areaId",
+        "areaName",
         "startDate",
         "endDate",
         "openingHours",
@@ -61,7 +63,11 @@ private fun JsonNode.strings() = toList().map { it.asString() }
  */
 class PopupDetailControllerTest :
     FunSpec({
-        val service = mockk<PopupDetailService> { every { findCategoryNames() } returns mapOf(1 to "캐릭터/IP") }
+        val service =
+            mockk<PopupDetailService> {
+                every { findCategoryNames() } returns mapOf(1 to "캐릭터/IP")
+                every { findAreaNames() } returns mapOf(3 to "홍대")
+            }
         val mockMvc: MockMvc =
             MockMvcBuilders
                 .standaloneSetup(PopupDetailController(service))
@@ -190,7 +196,7 @@ class PopupDetailControllerTest :
             viewer.captured shouldBe PopupViewer.anonymous("203.0.113.7", null, "127.0.0.1", "test-agent")
         }
 
-        test("응답 data 는 PopupDetailResponse 의 22개 필드(기존 20개 + viewCount · interestCategoryName)만 담고 내부 필드는 노출하지 않는다") {
+        test("응답 data 는 PopupDetailResponse 의 24개 필드(기존 20개 + viewCount · interestCategoryName · areaId · areaName)만 담고 내부 필드는 노출하지 않는다") {
             every { service.findPopupDetail(1L, any()) } returns PopupDetailFixtures.fullPopup(id = 1L)
 
             val json = mockMvc.getJson("/api/v1/popups/1", 200)
