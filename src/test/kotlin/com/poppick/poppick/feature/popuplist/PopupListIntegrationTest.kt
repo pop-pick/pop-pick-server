@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popuplist
 
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupSearchRepository
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
@@ -261,6 +262,45 @@ class PopupListIntegrationTest {
         println("[카테고리 이름] $names, 노출 팝업 카테고리 id=$categoryIds")
         assumeTrue(names.isNotEmpty(), "interest_category 가 비어 있음")
         categoryIds.filterNot { it in names } shouldBe emptyList()
+    }
+
+    /** 서울 전역을 넉넉히 덮는 지도 영역. */
+    private val seoulBounds = MapBounds(37.40, 126.70, 37.72, 127.20)
+
+    @Test
+    fun `지도 서울 전역 조회는 좌표 있는 노출 팝업 전체를 인기순으로 돌려준다`() {
+        val map = popupListService.findMapPopups(null, seoulBounds)
+        val expected =
+            popupSearchRepository
+                .findAll()
+                .map { it.toDomain() }
+                .filter { it.isVisible() && it.latitude != null && it.longitude != null }
+                .filter { it.latitude!! in seoulBounds.swLat..seoulBounds.neLat && it.longitude!! in seoulBounds.swLng..seoulBounds.neLng }
+                .sortedWith(popularOrder)
+
+        println("[지도 서울 전역] ${map.size}건 (상한 ${PopupListService.MAP_POPUP_LIMIT})")
+        map.map { it.id } shouldBe expected.take(PopupListService.MAP_POPUP_LIMIT).map { it.id }
+    }
+
+    @Test
+    fun `지도 keyword 조회는 목록 keyword 결과와 같은 팝업 집합이다(좌표 · 영역 안)`() {
+        val keyword =
+            popupListService.findMapPopups(null, seoulBounds).firstOrNull()?.title
+        assumeTrue(keyword != null, "지도에 표시할 팝업이 없음")
+
+        val listed = popupListService.findPopups(keyword, PopupSortType.LATEST, Cursorable(null, 50)).content
+        val mapped = popupListService.findMapPopups(keyword, seoulBounds)
+
+        mapped.map { it.id }.toSet() shouldBe listed.filter { it.latitude != null && it.longitude != null }.map { it.id }.toSet()
+    }
+
+    @Test
+    fun `지도 결과의 상권 id 는 모두 이름을 찾을 수 있다`() {
+        val areaNames = popupListService.findAreaNames()
+        val areaIds = popupListService.findMapPopups(null, seoulBounds).mapNotNull { it.areaId }.toSet()
+
+        println("[상권 이름] $areaNames, 지도 팝업 상권 id=$areaIds")
+        areaIds.filterNot { it in areaNames } shouldBe emptyList()
     }
 
     private fun fetchAll(

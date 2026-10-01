@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupSearchRepository
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
@@ -19,4 +20,11 @@ class PopupSearchReader(
         sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
     ): Slice<Popup> = popupSearchRepository.findPopups(keyword, today, sort, cursorable).map { it.toDomain() }
+
+    fun findMapPopups(
+        keyword: String?,
+        today: LocalDate,
+        bounds: MapBounds,
+        limit: Int,
+    ): List<Popup> = popupSearchRepository.findMapPopups(keyword, today, bounds, limit).map { it.toDomain() }
 }

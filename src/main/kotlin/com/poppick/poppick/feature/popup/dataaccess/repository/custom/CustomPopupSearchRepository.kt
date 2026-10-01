@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popup.dataaccess.repository.custom
 
 import com.poppick.poppick.feature.popup.dataaccess.entity.PopupEntity
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.global.paging.Cursorable
@@ -24,4 +25,16 @@ interface CustomPopupSearchRepository {
         sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
     ): Slice<PopupEntity>
+
+    /**
+     * 지도 영역 안의 노출 중인 팝업(최대 limit 건). 노출 조건 · keyword 조건은 findPopups 와 같다.
+     * 좌표가 있고 latitude BETWEEN swLat AND neLat, longitude BETWEEN swLng AND neLng(경계 포함)인 팝업만.
+     * 상한에 걸리면 인기 팝업이 남도록 인기순(view_count DESC, popup_id DESC)으로 자른다.
+     */
+    fun findMapPopups(
+        keyword: String?,
+        today: LocalDate,
+        bounds: MapBounds,
+        limit: Int,
+    ): List<PopupEntity>
 }

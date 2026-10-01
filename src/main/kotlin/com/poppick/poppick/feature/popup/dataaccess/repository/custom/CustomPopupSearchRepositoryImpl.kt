@@ -2,6 +2,7 @@ package com.poppick.poppick.feature.popup.dataaccess.repository.custom
 
 import com.poppick.poppick.feature.popup.dataaccess.entity.PopupEntity
 import com.poppick.poppick.feature.popup.dataaccess.entity.QPopupEntity.popupEntity
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.global.paging.Cursorable
@@ -23,8 +24,7 @@ class CustomPopupSearchRepositoryImpl :
         val content =
             selectFrom(popupEntity)
                 .where(
-                    popupEntity.endDate.isNull.or(popupEntity.endDate.goe(today)),
-                    popupEntity.startDate.isNull.or(popupEntity.startDate.loe(today)),
+                    visible(today),
                     containsKeyword(keyword),
                     cursorable.cursor?.let { afterCursor(sort, it) },
                 ).orderBy(*orderOf(sort))
@@ -34,6 +34,34 @@ class CustomPopupSearchRepositoryImpl :
 
         return Slice(content, cursorable, hasNext)
     }
+
+    override fun findMapPopups(
+        keyword: String?,
+        today: LocalDate,
+        bounds: MapBounds,
+        limit: Int,
+    ): List<PopupEntity> =
+        selectFrom(popupEntity)
+            .where(
+                visible(today),
+                containsKeyword(keyword),
+                within(bounds),
+            ).orderBy(*orderOf(PopupSortType.POPULAR))
+            .limit(limit.toLong())
+            .fetch()
+
+    /** 노출 중: 종료되지 않았고(end_date IS NULL OR end_date >= today) 오픈했다(start_date IS NULL OR start_date <= today). */
+    private fun visible(today: LocalDate): BooleanExpression =
+        popupEntity.endDate.isNull
+            .or(popupEntity.endDate.goe(today))
+            .and(popupEntity.startDate.isNull.or(popupEntity.startDate.loe(today)))
+
+    /** 좌표가 있고 지도 영역 안(경계 포함). */
+    private fun within(bounds: MapBounds): BooleanExpression =
+        popupEntity.latitude.isNotNull
+            .and(popupEntity.longitude.isNotNull)
+            .and(popupEntity.latitude.between(bounds.swLat, bounds.neLat))
+            .and(popupEntity.longitude.between(bounds.swLng, bounds.neLng))
 
     private fun containsKeyword(keyword: String?): BooleanExpression? =
         keyword?.trim()?.takeIf { it.isNotEmpty() }?.let {

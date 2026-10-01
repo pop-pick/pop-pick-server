@@ -49,6 +49,7 @@ class SecurityConfig(
                 authorize("/api/v1/onboardings/**", permitAll)
                 authorize(HttpMethod.GET, "/api/v1/popups", permitAll)
                 authorize(HttpMethod.GET, "/api/v1/popups/popular", permitAll)
+                authorize(HttpMethod.GET, "/api/v1/popups/map", permitAll)
                 authorize(HttpMethod.GET, "/api/v1/popups/{popupId}", permitAll)
                 authorize(anyRequest, authenticated)
             }

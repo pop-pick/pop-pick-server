@@ -1,6 +1,7 @@
 package com.poppick.poppick.feature.popuplist.presentation
 
 import com.poppick.poppick.feature.popup.Fixtures
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
@@ -240,6 +241,96 @@ class PopupListControllerTest :
 
                 bothControllers.getJson("/api/v1/popups/1715", 200)["data"]["popupId"].asLong() shouldBe 1715L
                 verify(exactly = 1) { detailService.findPopupDetail(1715L, any()) }
+            }
+        }
+
+        context("GET /api/v1/popups/map (지도 팝업)") {
+            val bounds = "swLat=37.50&swLng=126.95&neLat=37.60&neLng=127.10"
+            val mapPopups =
+                listOf(
+                    popups[0].copy(latitude = 37.54, longitude = 127.05, areaId = 1),
+                    popups[1].copy(latitude = 37.51, longitude = 126.97, areaId = null),
+                )
+
+            fun stubMap(result: List<Popup> = mapPopups) {
+                every { service.findMapPopups(any(), any()) } returns result
+                every { service.findAreaNames() } returns mapOf(1 to "성수")
+            }
+
+            test("영역 좌표와 keyword 를 넘기고, 마커 · 카드 필드 11개를 담은 배열을 내려준다") {
+                stubMap()
+
+                val data = mockMvc.getJson("/api/v1/popups/map?$bounds&keyword=성수", 200)["data"]
+
+                verify(exactly = 1) { service.findMapPopups("성수", MapBounds(37.50, 126.95, 37.60, 127.10)) }
+                data.toList().map { it["popupId"].asLong() } shouldBe listOf(1720L, 1715L)
+                data[0].propertyNames().toSet() shouldBe
+                    setOf(
+                        "popupId",
+                        "latitude",
+                        "longitude",
+                        "title",
+                        "imageUrl",
+                        "interestCategoryId",
+                        "interestCategoryName",
+                        "areaId",
+                        "areaName",
+                        "endDate",
+                        "reservationType",
+                    )
+                data[0]["latitude"].asDouble() shouldBe 37.54
+                data[0]["longitude"].asDouble() shouldBe 127.05
+                data[0]["interestCategoryName"].asString() shouldBe "캐릭터/IP"
+                data[0]["areaId"].asInt() shouldBe 1
+                data[0]["areaName"].asString() shouldBe "성수"
+                data[1]["interestCategoryName"].isNull shouldBe true
+                data[1]["areaId"].isNull shouldBe true
+                data[1]["areaName"].isNull shouldBe true
+            }
+
+            test("keyword 없이 호출할 수 있고, 카테고리 · 상권 이름 조회는 요청당 1번씩이다") {
+                stubMap()
+
+                mockMvc.getJson("/api/v1/popups/map?$bounds", 200)
+
+                verify(exactly = 1) { service.findMapPopups(null, any()) }
+                verify(exactly = 1) { service.findCategoryNames() }
+                verify(exactly = 1) { service.findAreaNames() }
+            }
+
+            test("결과가 없으면 200 과 빈 배열") {
+                stubMap(emptyList())
+
+                mockMvc.getJson("/api/v1/popups/map?$bounds&keyword=없는검색어", 200)["data"].size() shouldBe 0
+            }
+
+            test("잘못된 영역은 400 · E400 이고 조회하지 않는다") {
+                listOf(
+                    "swLng=126.95&neLat=37.60&neLng=127.10", // swLat 누락
+                    "", // 전부 누락
+                    "swLat=abc&swLng=126.95&neLat=37.60&neLng=127.10", // 숫자 아님
+                    "swLat=-91&swLng=126.95&neLat=37.60&neLng=127.10", // 위도 범위
+                    "swLat=37.50&swLng=126.95&neLat=37.60&neLng=181", // 경도 범위
+                    "swLat=37.60&swLng=126.95&neLat=37.50&neLng=127.10", // swLat > neLat
+                    "swLat=37.50&swLng=127.10&neLat=37.60&neLng=126.95", // swLng > neLng
+                ).forEach { query ->
+                    mockMvc.getJson("/api/v1/popups/map?$query", 400)["error"]["errorCode"].asString() shouldBe "E400"
+                }
+                verify(exactly = 0) { service.findMapPopups(any(), any()) }
+            }
+
+            test("상세 API(/{popupId})와 함께 떠 있어도 /map 은 지도 API 로 가고 상세(조회수)는 호출되지 않는다") {
+                stubMap()
+                val detailService = mockk<PopupDetailService>()
+                val bothControllers =
+                    MockMvcBuilders
+                        .standaloneSetup(PopupListController(service), PopupDetailController(detailService))
+                        .setControllerAdvice(GlobalExceptionHandler())
+                        .setCustomArgumentResolvers(CursorableArgumentResolver(), AuthenticationPrincipalArgumentResolver())
+                        .build()
+
+                bothControllers.getJson("/api/v1/popups/map?$bounds", 200)["data"].size() shouldBe 2
+                verify(exactly = 0) { detailService.findPopupDetail(any(), any()) }
             }
         }
     })

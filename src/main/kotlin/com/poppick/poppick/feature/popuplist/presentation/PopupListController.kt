@@ -1,9 +1,11 @@
 package com.poppick.poppick.feature.popuplist.presentation
 
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.feature.popuplist.business.PopupListService
 import com.poppick.poppick.feature.popuplist.presentation.dto.response.PopupListPageResponse
 import com.poppick.poppick.feature.popuplist.presentation.dto.response.PopupListResponse
+import com.poppick.poppick.feature.popuplist.presentation.dto.response.PopupMapResponse
 import com.poppick.poppick.global.paging.CursorDefault
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.response.ApiResponse
@@ -94,5 +96,40 @@ class PopupListController(
         val categoryNames = popupListService.findCategoryNames()
 
         return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames) }))
+    }
+
+    @Operation(
+        summary = "지도 팝업",
+        description =
+            "지도 화면 영역(남서 · 북동 좌표) 안의 노출 중인 팝업을 한 번에 조회한다. 로그인하지 않아도 조회할 수 있다.\n\n" +
+                "노출 조건(오픈했고 종료되지 않음)과 keyword 검색 조건은 목록 API 와 같고, 좌표가 영역 안(경계 포함)인 팝업만 담는다. " +
+                "cursor · 정렬 · 페이지 없이 영역 안 마커를 모두 내려준다(서버 안전 상한 500건, 넘으면 조회수 많은 순으로 자른다).\n\n" +
+                "응답만으로 마커와 하단 카드를 그린다. 카드 표시용으로 상세 API 를 미리 호출하지 않는다(상세 API 는 조회수를 올린다). " +
+                "이 API 호출로는 조회수가 오르지 않는다.\n\n" +
+                "네 좌표는 모두 필수이며, 누락 · 숫자 아님 · 위도(-90~90) · 경도(-180~180) 범위 밖 · swLat > neLat · swLng > neLng 이면 400(E400).",
+    )
+    @Parameters(
+        Parameter(name = "swLat", `in` = ParameterIn.QUERY, required = true, description = "남서쪽 위도", example = "37.50"),
+        Parameter(name = "swLng", `in` = ParameterIn.QUERY, required = true, description = "남서쪽 경도", example = "126.95"),
+        Parameter(name = "neLat", `in` = ParameterIn.QUERY, required = true, description = "북동쪽 위도", example = "37.60"),
+        Parameter(name = "neLng", `in` = ParameterIn.QUERY, required = true, description = "북동쪽 경도", example = "127.10"),
+    )
+    @GetMapping("/map")
+    fun findMapPopups(
+        @Parameter(description = "검색어. 목록 API 와 같다(이름 · 브랜드 · 도로명 주소 · 지번 주소 부분 일치). 생략하면 영역 안 전체.")
+        @RequestParam(required = false)
+        keyword: String?,
+        // 누락을 400 으로 응답하려고 선택 파라미터로 받아 MapBounds 에서 필수 여부를 검증한다.
+        @Parameter(hidden = true) @RequestParam(required = false) swLat: Double?,
+        @Parameter(hidden = true) @RequestParam(required = false) swLng: Double?,
+        @Parameter(hidden = true) @RequestParam(required = false) neLat: Double?,
+        @Parameter(hidden = true) @RequestParam(required = false) neLng: Double?,
+    ): ResponseEntity<ApiResponse<List<PopupMapResponse>>> {
+        val bounds = MapBounds.of(swLat, swLng, neLat, neLng)
+        val popups = popupListService.findMapPopups(keyword, bounds)
+        val categoryNames = popupListService.findCategoryNames()
+        val areaNames = popupListService.findAreaNames()
+
+        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupMapResponse.from(it, categoryNames, areaNames) }))
     }
 }
