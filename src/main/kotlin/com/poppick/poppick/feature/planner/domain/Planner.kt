@@ -100,7 +100,7 @@ data class Planner(
 
 /**
  * 플래너의 방문지 1곳. title · address · 좌표 · imageUrl · openingHours 는 저장 시점 스냅샷이다
- * (PopupPurger 가 종료 팝업을 물리 삭제하므로 일정 화면은 이 값으로 그린다).
+ * (저장 시점 값을 고정해 보여주기 위한 것으로, 일정 화면은 이 값으로 그린다).
  */
 data class PlannerStop(
     val id: Long?,

@@ -3,6 +3,7 @@ package com.poppick.poppick.feature.popupdetail.presentation.dto.response
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.ReservationType
 import com.poppick.poppick.feature.popup.domain.SourceType
+import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.OffsetDateTime
 
@@ -34,11 +35,14 @@ data class PopupDetailResponse(
     val tags: List<String>?,
     /** 팝픽 상세 조회수. 같은 조회자의 10분 내 재조회는 세지 않는다. */
     val viewCount: Long,
+    @field:Schema(description = "로그인 회원의 찜 여부. 비로그인은 항상 false", example = "false")
+    val wished: Boolean,
 ) {
     companion object {
         /** categoryNames · areaNames 는 id → 이름. */
         fun from(
             popup: Popup,
+            wished: Boolean,
             categoryNames: Map<Int, String>,
             areaNames: Map<Int, String>,
         ) = PopupDetailResponse(
@@ -66,6 +70,7 @@ data class PopupDetailResponse(
             sourceUrls = popup.sourceUrls,
             tags = popup.tags,
             viewCount = popup.viewCount,
+            wished = wished,
         )
     }
 }

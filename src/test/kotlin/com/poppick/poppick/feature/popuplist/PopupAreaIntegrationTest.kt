@@ -140,7 +140,7 @@ class PopupAreaIntegrationTest {
         keyword: String?,
         areaId: Int? = null,
         sort: PopupSortType = PopupSortType.POPULAR,
-    ) = seeded(popupListService.findPopups(keyword, areaId, sort, Cursorable(null, 50)).content)
+    ) = seeded(popupListService.findPopups(null, keyword, areaId, sort, Cursorable(null, 50)).map { it.popup }.content)
 
     @Test
     fun `keyword 가 상권 이름이면 주소에 그 이름이 없어도 그 상권 팝업을 찾고, 주소 일치 팝업도 그대로 찾는다`() {
@@ -179,7 +179,7 @@ class PopupAreaIntegrationTest {
         val collected = mutableListOf<Popup>()
         var cursor: PopupSearchCursor? = null
         do {
-            val slice = popupListService.findPopups(marker, HONGDAE, PopupSortType.LATEST, Cursorable(cursor, 1))
+            val slice = popupListService.findPopups(null, marker, HONGDAE, PopupSortType.LATEST, Cursorable(cursor, 1)).map { it.popup }
             collected += slice.content
             cursor = slice.content.lastOrNull()?.let { PopupSearchCursor.of(it, PopupSortType.LATEST) }
         } while (slice.hasNext)
@@ -198,13 +198,19 @@ class PopupAreaIntegrationTest {
     fun `목록 · 지도 · 상세 응답에 지역 id 와 이름을 담고, 상권이 없으면 둘 다 null`() {
         val areaNames = popupListService.findAreaNames()
         val categoryNames = popupListService.findCategoryNames()
-        val listed = popupListService.findPopups(marker, null, PopupSortType.POPULAR, Cursorable(null, 50)).content.associateBy { it.id }
+        val listed =
+            popupListService
+                .findPopups(null, marker, null, PopupSortType.POPULAR, Cursorable(null, 50))
+                .map {
+                    it.popup
+                }.content
+                .associateBy { it.id }
 
-        with(PopupListResponse.from(listed.getValue(ids.getValue("hongdaeCafe")), categoryNames, areaNames)) {
+        with(PopupListResponse.from(listed.getValue(ids.getValue("hongdaeCafe")), wished = false, categoryNames, areaNames)) {
             areaId shouldBe HONGDAE
             areaName shouldBe "홍대"
         }
-        with(PopupListResponse.from(listed.getValue(ids.getValue("noArea")), categoryNames, areaNames)) {
+        with(PopupListResponse.from(listed.getValue(ids.getValue("noArea")), wished = false, categoryNames, areaNames)) {
             areaId shouldBe null
             areaName shouldBe null
         }
@@ -215,7 +221,7 @@ class PopupAreaIntegrationTest {
 
         val detailAreaNames = popupDetailService.findAreaNames()
         detailAreaNames shouldBe areaNames
-        with(PopupDetailResponse.from(listed.getValue(ids.getValue("hongdaeCharacter")), categoryNames, detailAreaNames)) {
+        with(PopupDetailResponse.from(listed.getValue(ids.getValue("hongdaeCharacter")), wished = false, categoryNames, detailAreaNames)) {
             areaId shouldBe HONGDAE
             areaName shouldBe "홍대"
         }

@@ -4,6 +4,7 @@ import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.feature.popup.domain.SourceType
+import com.poppick.poppick.feature.popuplist.domain.PopupListItem
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.paging.Cursorable
@@ -25,7 +26,7 @@ class PopupListPageResponseTest :
         fun slice(
             content: List<Popup>,
             hasNext: Boolean,
-        ) = Slice(content, Cursorable<PopupSearchCursor>(null, 10), hasNext)
+        ) = Slice(content.map { PopupListItem(it, wished = false) }, Cursorable<PopupSearchCursor>(null, 10), hasNext)
 
         fun encodeRaw(raw: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(raw.toByteArray())
 
@@ -211,5 +212,19 @@ class PopupListPageResponseTest :
                 shouldThrow<AppException> { PopupListPageResponse.decodeCursor(popular, PopupSortType.LATEST) }
                     .errorType shouldBe ErrorType.INVALID_PAGING_PARAMETER
             }
+        }
+
+        test("항목의 wished 를 그대로 옮긴다") {
+            val items = listOf(PopupListItem(popup(1, null), wished = true), PopupListItem(popup(2, null), wished = false))
+
+            val response =
+                PopupListPageResponse.from(
+                    Slice(items, Cursorable<PopupSearchCursor>(null, 10), hasNext = false),
+                    PopupSortType.LATEST,
+                    emptyMap(),
+                    emptyMap(),
+                )
+
+            response.content.map { it.popupId to it.wished } shouldBe listOf(1L to true, 2L to false)
         }
     })

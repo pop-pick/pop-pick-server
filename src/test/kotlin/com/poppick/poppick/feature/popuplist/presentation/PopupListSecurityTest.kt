@@ -7,8 +7,10 @@ import com.poppick.poppick.feature.member.implement.MemberFinder
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.SourceType
 import com.poppick.poppick.feature.popupdetail.business.PopupDetailService
+import com.poppick.poppick.feature.popupdetail.domain.PopupDetail
 import com.poppick.poppick.feature.popupdetail.presentation.PopupDetailController
 import com.poppick.poppick.feature.popuplist.business.PopupListService
+import com.poppick.poppick.feature.popuplist.domain.PopupListItem
 import com.poppick.poppick.global.paging.Slice
 import com.poppick.poppick.security.domain.AuthMember
 import com.poppick.poppick.security.entrypoint.JwtAuthenticationEntryPoint
@@ -110,12 +112,12 @@ class PopupListSecurityTest {
             .andExpect(jsonPath("$.error.errorCode").value("E1000"))
 
         verify(exactly = 0) { popupListService.findRecommendedPopups(any()) }
-        verify(exactly = 0) { popupDetailService.findPopupDetail(any(), any()) }
+        verify(exactly = 0) { popupDetailService.findPopupDetail(any(), any(), any()) }
     }
 
     @Test
     fun `회원이 recommended 를 호출하면 200 이고 memberKey 로 조회한 순서 그대로 목록 카드를 내려준다`() {
-        every { popupListService.findRecommendedPopups("member-1") } returns popups
+        every { popupListService.findRecommendedPopups("member-1") } returns popups.map { PopupListItem(it, wished = false) }
 
         mockMvc
             .perform(get("/api/v1/popups/recommended").asMember())
@@ -134,15 +136,17 @@ class PopupListSecurityTest {
 
         verify(exactly = 1) { popupListService.findRecommendedPopups("member-1") }
         verify(exactly = 1) { popupListService.findCategoryNames() }
-        verify(exactly = 0) { popupDetailService.findPopupDetail(any(), any()) }
+        verify(exactly = 0) { popupDetailService.findPopupDetail(any(), any(), any()) }
     }
 
     @Test
     fun `목록 · 인기 · 지도 · 상세는 기존처럼 비회원도 200`() {
-        every { popupListService.findPopups(any(), any(), any(), any()) } answers { Slice(popups, arg(3), false) }
-        every { popupListService.findPopularPopups() } returns popups
+        every { popupListService.findPopups(any(), any(), any(), any(), any()) } answers {
+            Slice(popups.map { PopupListItem(it, wished = false) }, arg(4), false)
+        }
+        every { popupListService.findPopularPopups(any()) } returns popups.map { PopupListItem(it, wished = false) }
         every { popupListService.findMapPopups(any(), any()) } returns listOf(popups[0].copy(latitude = 37.55, longitude = 127.0))
-        every { popupDetailService.findPopupDetail(1715L, any()) } returns popups[1]
+        every { popupDetailService.findPopupDetail(any(), 1715L, any()) } returns PopupDetail(popups[1], wished = false)
         every { popupDetailService.findCategoryNames() } returns emptyMap()
         every { popupDetailService.findAreaNames() } returns emptyMap()
 
@@ -155,7 +159,7 @@ class PopupListSecurityTest {
         ).forEach { request ->
             mockMvc.perform(request).andExpect(status().isOk)
         }
-        verify(exactly = 1) { popupDetailService.findPopupDetail(1715L, any()) }
+        verify(exactly = 1) { popupDetailService.findPopupDetail(null, 1715L, any()) }
         verify(exactly = 0) { popupListService.findRecommendedPopups(any()) }
     }
 }

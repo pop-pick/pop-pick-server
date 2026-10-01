@@ -30,10 +30,4 @@ interface CustomPopupRepository {
      * end_date IS NULL OR end_date >= today
      */
     fun findEmbedTargets(today: LocalDate): List<PopupEntity>
-
-    /** 삭제 대상 id(오름차순): end_date IS NULL OR end_date < today */
-    fun findExpiredPopupIds(today: LocalDate): List<Long>
-
-    /** JPQL bulk delete(영속성 컨텍스트를 거치지 않는다). 삭제 건수를 반환한다. */
-    fun deleteByIds(ids: List<Long>): Int
 }

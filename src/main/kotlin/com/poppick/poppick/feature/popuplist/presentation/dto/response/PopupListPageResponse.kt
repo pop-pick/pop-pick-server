@@ -1,8 +1,8 @@
 package com.poppick.poppick.feature.popuplist.presentation.dto.response
 
-import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
 import com.poppick.poppick.feature.popup.domain.PopupSortType
+import com.poppick.poppick.feature.popuplist.domain.PopupListItem
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
 import com.poppick.poppick.global.paging.Slice
@@ -31,18 +31,18 @@ data class PopupListPageResponse(
 ) {
     companion object {
         fun from(
-            slice: Slice<Popup>,
+            slice: Slice<PopupListItem>,
             sort: PopupSortType,
             categoryNames: Map<Int, String>,
             areaNames: Map<Int, String>,
         ) = PopupListPageResponse(
-            content = slice.content.map { PopupListResponse.from(it, categoryNames, areaNames) },
+            content = slice.content.map { PopupListResponse.from(it.popup, it.wished, categoryNames, areaNames) },
             hasNext = slice.hasNext,
             nextCursor =
                 slice.content
                     .lastOrNull()
                     ?.takeIf { slice.hasNext }
-                    ?.let { encodeCursor(PopupSearchCursor.of(it, sort)) },
+                    ?.let { encodeCursor(PopupSearchCursor.of(it.popup, sort)) },
         )
 
         /**

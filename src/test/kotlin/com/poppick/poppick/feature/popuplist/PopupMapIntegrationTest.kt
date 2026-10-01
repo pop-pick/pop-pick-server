@@ -135,7 +135,8 @@ class PopupMapIntegrationTest {
     fun `지도 결과는 같은 keyword 의 목록 결과 중 영역 안 좌표를 가진 팝업과 같다`() {
         val listed =
             popupListService
-                .findPopups(keyword, null, PopupSortType.POPULAR, Cursorable(null, 50))
+                .findPopups(null, keyword, null, PopupSortType.POPULAR, Cursorable(null, 50))
+                .map { it.popup }
                 .content
                 .filter { p ->
                     p.latitude != null &&

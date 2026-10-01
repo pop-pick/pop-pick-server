@@ -11,6 +11,7 @@ import com.poppick.poppick.global.paging.CursorDefault
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.response.ApiResponse
 import com.poppick.poppick.security.annotation.AuthMember
+import com.poppick.poppick.security.annotation.OptionalAuthMember
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.Parameters
@@ -39,7 +40,8 @@ class PopupListController(
                 "지역이 분류되지 않은 팝업은 areaId 필터 결과에 포함되지 않습니다.\n\n" +
                 "첫 페이지는 cursor 없이 요청하고, 다음 페이지는 응답의 nextCursor를 cursor로 보냅니다. " +
                 "keyword · sort · areaId가 바뀌면 cursor 없이 첫 페이지부터 다시 요청합니다.\n\n" +
-                "인기순은 페이지를 넘기는 사이 조회수가 바뀌면 일부 팝업의 순서가 바뀌거나 누락될 수 있습니다.",
+                "인기순은 페이지를 넘기는 사이 조회수가 바뀌면 일부 팝업의 순서가 바뀌거나 누락될 수 있습니다.\n\n" +
+                "Authorization 헤더는 선택입니다. 보내면 각 항목의 wished에 찜 여부가 담기고, 없으면 전부 false입니다.",
     )
     @Parameters(
         Parameter(
@@ -75,6 +77,7 @@ class PopupListController(
     )
     @GetMapping
     fun findPopups(
+        @OptionalAuthMember member: Member?,
         @Parameter(
             description =
                 "검색어. 팝업명 · 브랜드 · 주소 · 지역 이름에 포함된 팝업을 찾습니다(대소문자 무시). " +
@@ -88,7 +91,7 @@ class PopupListController(
     ): ResponseEntity<ApiResponse<PopupListPageResponse>> {
         val sortType = PopupSortType.from(sort)
         val cursor = cursorable.cursor?.takeIf { it.isNotBlank() }?.let { PopupListPageResponse.decodeCursor(it, sortType) }
-        val slice = popupListService.findPopups(keyword, areaId, sortType, Cursorable(cursor, cursorable.limit))
+        val slice = popupListService.findPopups(member?.memberKey, keyword, areaId, sortType, Cursorable(cursor, cursorable.limit))
 
         val categoryNames = popupListService.findCategoryNames()
         val areaNames = popupListService.findAreaNames()
@@ -100,15 +103,20 @@ class PopupListController(
         summary = "지금 인기 있는 팝업",
         description =
             "홈 화면의 인기 팝업을 최대 3개 조회합니다. 비회원도 조회할 수 있습니다.\n\n" +
-                "정렬 기준은 목록 API의 sort=popular와 같습니다. 이 API는 조회수를 증가시키지 않습니다.",
+                "정렬 기준은 목록 API의 sort=popular와 같습니다. 이 API는 조회수를 증가시키지 않습니다.\n\n" +
+                "Authorization 헤더는 선택입니다. 보내면 각 항목의 wished에 찜 여부가 담기고, 없으면 전부 false입니다.",
     )
     @GetMapping("/popular")
-    fun findPopularPopups(): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
-        val popups = popupListService.findPopularPopups()
+    fun findPopularPopups(
+        @OptionalAuthMember member: Member?,
+    ): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
+        val popups = popupListService.findPopularPopups(member?.memberKey)
         val categoryNames = popupListService.findCategoryNames()
         val areaNames = popupListService.findAreaNames()
 
-        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames, areaNames) }))
+        return ResponseEntity.ok(
+            ApiResponse.success(popups.map { PopupListResponse.from(it.popup, it.wished, categoryNames, areaNames) }),
+        )
     }
 
     @Operation(
@@ -118,7 +126,8 @@ class PopupListController(
                 "회원의 관심 카테고리 또는 선호 지역과 일치하는 팝업을 인기 팝업 API와 같은 기준으로 정렬해 추천합니다. " +
                 "3개보다 적으면 이미 포함된 팝업을 제외하고 인기 팝업으로 채웁니다.\n\n" +
                 "관심 카테고리와 선호 지역이 모두 없으면 인기 팝업과 같은 결과를 반환합니다. " +
-                "인기 팝업 API 결과와 겹칠 수 있으며, 이 API는 조회수를 증가시키지 않습니다.",
+                "인기 팝업 API 결과와 겹칠 수 있으며, 이 API는 조회수를 증가시키지 않습니다.\n\n" +
+                "각 항목의 wished에 로그인 회원의 찜 여부가 담깁니다.",
     )
     @GetMapping("/recommended")
     fun findRecommendedPopups(
@@ -128,7 +137,9 @@ class PopupListController(
         val categoryNames = popupListService.findCategoryNames()
         val areaNames = popupListService.findAreaNames()
 
-        return ResponseEntity.ok(ApiResponse.success(popups.map { PopupListResponse.from(it, categoryNames, areaNames) }))
+        return ResponseEntity.ok(
+            ApiResponse.success(popups.map { PopupListResponse.from(it.popup, it.wished, categoryNames, areaNames) }),
+        )
     }
 
     @Operation(

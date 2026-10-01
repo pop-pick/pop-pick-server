@@ -137,7 +137,7 @@ class PopupRecommendFlowIntegrationTest {
         return memberKey
     }
 
-    private fun recommend(memberKey: String) = popupListService.findRecommendedPopups(memberKey).map { it.id!! }
+    private fun recommend(memberKey: String) = popupListService.findRecommendedPopups(memberKey).map { it.popup.id!! }
 
     private fun idsOf(vararg names: String) = names.map { ids.getValue(it) }
 
@@ -172,7 +172,7 @@ class PopupRecommendFlowIntegrationTest {
 
     @Test
     fun `선호값이 없거나 맞는 팝업이 없으면 인기 Top3 와 같다`() {
-        val popularTop3 = popupListService.findPopularPopups().map { it.id!! }
+        val popularTop3 = popupListService.findPopularPopups(null).map { it.popup }.map { it.id!! }
         popularTop3 shouldBe idsOf("popularFirst", "popularPreferred", "popularThird")
 
         recommend(member("empty")) shouldBe popularTop3
