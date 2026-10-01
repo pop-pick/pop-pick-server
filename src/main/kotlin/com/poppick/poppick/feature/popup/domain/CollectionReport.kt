@@ -7,25 +7,14 @@ import java.time.LocalDate
 /** 수집 배치 1회 실행 결과. 단계가 통째로 실패하면 해당 단계는 NULL. */
 data class CollectionReport(
     val date: LocalDate,
-    val purge: Purge?,
     val collect: Collect?,
     val enrich: Enrich?,
     val embed: Embed?,
     val elapsed: Duration,
 ) {
     fun summary() =
-        "collection: date=$date purge=${purge?.let { "ok" } ?: "failed"} collect=${collect?.let { "ok" } ?: "failed"} " +
+        "collection: date=$date collect=${collect?.let { "ok" } ?: "failed"} " +
             "enrich=${enrich?.let { "ok" } ?: "failed"} embed=${embed?.let { "ok" } ?: "failed"} in ${elapsed.toSecondsText()}"
-
-    data class Purge(
-        /** 삭제한 팝업 수(종료일이 없거나 지난 팝업). */
-        val popups: Int,
-        /** 함께 삭제한 임베딩 수. */
-        val embeddings: Int,
-        val elapsed: Duration,
-    ) {
-        fun summary() = "purge: popups=$popups embeddings=$embeddings in ${elapsed.toSecondsText()}"
-    }
 
     data class Collect(
         /** 실행한 검색어 수. */

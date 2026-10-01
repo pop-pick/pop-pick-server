@@ -5,6 +5,7 @@ import com.poppick.poppick.security.filter.AuthenticationExceptionTranslationFil
 import com.poppick.poppick.security.filter.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer
 import org.springframework.security.config.annotation.web.invoke
@@ -46,6 +47,8 @@ class SecurityConfig(
                 authorize("/actuator/**", permitAll)
                 authorize("/api/v1/auth/**", permitAll)
                 authorize("/api/v1/onboardings/**", permitAll)
+                authorize(HttpMethod.GET, "/api/v1/popups", permitAll)
+                authorize(HttpMethod.GET, "/api/v1/popups/{popupId}", permitAll)
                 authorize(anyRequest, authenticated)
             }
 

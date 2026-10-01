@@ -47,18 +47,4 @@ class CustomPopupRepositoryImpl :
             .where(popupEntity.endDate.isNull.or(popupEntity.endDate.goe(today)))
             .orderBy(popupEntity.id.asc())
             .fetch()
-
-    override fun findExpiredPopupIds(today: LocalDate): List<Long> =
-        select(popupEntity.id)
-            .from(popupEntity)
-            .where(popupEntity.endDate.isNull.or(popupEntity.endDate.lt(today)))
-            .orderBy(popupEntity.id.asc())
-            .fetch()
-            .filterNotNull()
-
-    override fun deleteByIds(ids: List<Long>): Int =
-        delete(popupEntity)
-            .where(popupEntity.id.`in`(ids))
-            .execute()
-            .toInt()
 }
