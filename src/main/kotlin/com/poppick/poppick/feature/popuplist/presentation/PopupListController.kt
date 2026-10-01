@@ -32,49 +32,44 @@ class PopupListController(
     @Operation(
         summary = "팝업 목록",
         description =
-            "오픈했고 종료되지 않은 팝업을 sort 순서로 조회한다. keyword 로 이름 · 브랜드 · 주소 · 지역 이름을 검색한다.\n\n" +
-                "지역 필터(areaId): 해당 상권(favorite_area)으로 분류된 팝업만 조회한다. keyword 와 함께 오면 두 조건을 모두 만족하는 팝업만 담는다. " +
-                "상권이 분류되지 않은 팝업은 지역 필터에 걸리지 않는다.\n\n" +
-                "정렬(sort): latest(기본) = 오픈일 최신순(오픈일 없는 팝업은 맨 뒤, 같은 오픈일은 최근 등록순), " +
-                "popular = 인기순(상세 조회수 많은 순, 같은 조회수는 최근 등록순).\n\n" +
-                "페이지 조회: 첫 페이지는 cursor 없이 요청한다. 응답의 hasNext 가 true 이면 nextCursor 가 함께 내려가며, " +
-                "그 값을 그대로 다음 요청의 cursor 에 넣는다. hasNext 가 false 이면 nextCursor 는 null 이다.\n\n" +
-                "keyword · sort · areaId 가 바뀌면 이전 cursor 를 재사용하지 말고 cursor 없이 첫 페이지부터 다시 요청한다. " +
-                "다른 sort 의 cursor 를 보내면 400(E400).\n\n" +
-                "인기순은 조회수가 계속 바뀌는 값이라, 페이지를 넘기는 사이 조회수가 오른 팝업은 순서가 바뀌어 " +
-                "다음 페이지에서 빠질 수 있다.",
+            "오픈했고 종료되지 않은 팝업 목록을 조회합니다. 비회원도 조회할 수 있습니다.\n\n" +
+                "latest는 오픈일 최신순(오픈일이 없는 팝업은 마지막), popular는 상세 조회수 많은 순입니다. " +
+                "기준 값이 같으면 최근 등록순입니다.\n\n" +
+                "areaId와 keyword를 함께 보내면 두 조건을 모두 만족하는 팝업만 반환합니다. " +
+                "지역이 분류되지 않은 팝업은 areaId 필터 결과에 포함되지 않습니다.\n\n" +
+                "첫 페이지는 cursor 없이 요청하고, 다음 페이지는 응답의 nextCursor를 cursor로 보냅니다. " +
+                "keyword · sort · areaId가 바뀌면 cursor 없이 첫 페이지부터 다시 요청합니다.\n\n" +
+                "인기순은 페이지를 넘기는 사이 조회수가 바뀌면 일부 팝업의 순서가 바뀌거나 누락될 수 있습니다.",
     )
     @Parameters(
         Parameter(
             name = "areaId",
             `in` = ParameterIn.QUERY,
             description =
-                "지역(상권) 필터. 온보딩 선호 지역 목록(GET /api/v1/onboardings/favorite-areas)의 id. " +
-                    "생략하면 전체 지역. 없는 id 면 빈 목록.",
+                "지역 ID. GET /api/v1/onboardings/favorite-areas의 id를 사용합니다. " +
+                    "생략하면 전체 지역을 조회하고, 없는 ID면 빈 목록을 반환합니다.",
             schema = Schema(type = "integer"),
             example = "3",
         ),
         Parameter(
             name = "sort",
             `in` = ParameterIn.QUERY,
-            description =
-                "정렬. latest = 오픈일 최신순, popular = 인기순(상세 조회수). 생략하면 latest. " +
-                    "대소문자는 구분하지 않으며, 그 밖의 값이면 400(E400).",
+            description = "정렬 기준. 생략하면 latest이며 대소문자를 구분하지 않습니다. 그 외 값은 400(E400)을 반환합니다.",
             schema = Schema(type = "string", allowableValues = ["latest", "popular"], defaultValue = "latest"),
         ),
         Parameter(
             name = "cursor",
             `in` = ParameterIn.QUERY,
             description =
-                "이전 응답의 nextCursor 값을 그대로 넣는다. 첫 페이지는 생략한다. " +
-                    "서버 내부 형식이므로 해석하거나 직접 만들지 않는다. 형식이 올바르지 않으면 400(E400).",
+                "이전 응답의 nextCursor 값입니다. 첫 페이지는 생략합니다. " +
+                    "형식이 잘못되었거나 다른 sort의 cursor면 400(E400)을 반환합니다.",
             schema = Schema(type = "string"),
             example = "MjAyNi0wOS0yMDoxNzE1",
         ),
         Parameter(
             name = "limit",
             `in` = ParameterIn.QUERY,
-            description = "페이지 크기(1~50). 생략하면 10.",
+            description = "페이지 크기(1~50). 생략하면 10이며, 범위를 벗어나면 400(E400)을 반환합니다.",
             schema = Schema(type = "integer", defaultValue = "10", minimum = "1", maximum = "50"),
         ),
     )
@@ -82,8 +77,8 @@ class PopupListController(
     fun findPopups(
         @Parameter(
             description =
-                "검색어. 이름 · 브랜드 · 도로명 주소 · 지번 주소 · 지역(상권) 이름 부분 일치(대소문자 무시). " +
-                    "지역 이름이 맞으면 주소에 그 이름이 없어도 그 지역 팝업을 담는다(예: 홍대). 생략하면 전체 목록.",
+                "검색어. 팝업명 · 브랜드 · 주소 · 지역 이름에 포함된 팝업을 찾습니다(대소문자 무시). " +
+                    "지역 이름과 일치하면 주소에 해당 단어가 없어도 그 지역 팝업이 포함됩니다. 예: 홍대",
         )
         @RequestParam(required = false)
         keyword: String?,
@@ -104,10 +99,8 @@ class PopupListController(
     @Operation(
         summary = "지금 인기 있는 팝업",
         description =
-            "홈 화면용 인기 팝업을 최대 3개 조회한다. 로그인하지 않아도 조회할 수 있다.\n\n" +
-                "기준은 목록의 sort=popular 와 같다: 오픈했고 종료되지 않은 팝업 중 상세 조회수 많은 순, " +
-                "같은 조회수는 최근 등록순. 노출 대상이 3개보다 적으면 있는 만큼만 내려간다.\n\n" +
-                "이 API 호출로는 조회수가 오르지 않는다(조회수는 상세 조회에서만 오른다).",
+            "홈 화면의 인기 팝업을 최대 3개 조회합니다. 비회원도 조회할 수 있습니다.\n\n" +
+                "정렬 기준은 목록 API의 sort=popular와 같습니다. 이 API는 조회수를 증가시키지 않습니다.",
     )
     @GetMapping("/popular")
     fun findPopularPopups(): ResponseEntity<ApiResponse<List<PopupListResponse>>> {
@@ -121,13 +114,11 @@ class PopupListController(
     @Operation(
         summary = "회원 추천 팝업",
         description =
-            "홈 화면용 회원 추천 팝업을 최대 3개 조회한다. 로그인한 회원만 조회할 수 있다(비회원은 401 · E1000).\n\n" +
-                "온보딩에서 고른 관심 카테고리 또는 선호 지역 중 하나라도 맞는 팝업을 고른다. " +
-                "노출 조건(오픈했고 종료되지 않음)과 순서(상세 조회수 많은 순, 같은 조회수는 최근 등록순)는 인기 팝업 API 와 같다.\n\n" +
-                "맞는 팝업이 3개보다 적으면 인기 팝업 순서대로 이미 담긴 팝업을 빼고 채운다. " +
-                "관심 카테고리 · 선호 지역을 하나도 고르지 않은 회원은 인기 팝업과 같은 결과다. " +
-                "인기 팝업 API 결과와 겹칠 수 있다. 노출 대상이 3개보다 적으면 있는 만큼만 내려간다.\n\n" +
-                "이 API 호출로는 조회수가 오르지 않는다.",
+            "홈 화면의 회원 추천 팝업을 최대 3개 조회합니다. 로그인한 회원만 조회할 수 있으며, 비회원은 401(E1000)을 반환합니다.\n\n" +
+                "회원의 관심 카테고리 또는 선호 지역과 일치하는 팝업을 인기 팝업 API와 같은 기준으로 정렬해 추천합니다. " +
+                "3개보다 적으면 이미 포함된 팝업을 제외하고 인기 팝업으로 채웁니다.\n\n" +
+                "관심 카테고리와 선호 지역이 모두 없으면 인기 팝업과 같은 결과를 반환합니다. " +
+                "인기 팝업 API 결과와 겹칠 수 있으며, 이 API는 조회수를 증가시키지 않습니다.",
     )
     @GetMapping("/recommended")
     fun findRecommendedPopups(
@@ -143,12 +134,13 @@ class PopupListController(
     @Operation(
         summary = "지도 팝업",
         description =
-            "지도 화면 영역(남서 · 북동 좌표) 안의 노출 중인 팝업을 한 번에 조회한다. 로그인하지 않아도 조회할 수 있다.\n\n" +
-                "노출 조건(오픈했고 종료되지 않음)과 keyword 검색 조건(지역 이름 포함)은 목록 API 와 같고, 좌표가 영역 안(경계 포함)인 팝업만 담는다. " +
-                "cursor · 정렬 · 페이지 없이 영역 안 마커를 모두 내려준다(서버 안전 상한 500건, 넘으면 조회수 많은 순으로 자른다).\n\n" +
-                "응답만으로 마커와 하단 카드를 그린다. 카드 표시용으로 상세 API 를 미리 호출하지 않는다(상세 API 는 조회수를 올린다). " +
-                "이 API 호출로는 조회수가 오르지 않는다.\n\n" +
-                "네 좌표는 모두 필수이며, 누락 · 숫자 아님 · 위도(-90~90) · 경도(-180~180) 범위 밖 · swLat > neLat · swLng > neLng 이면 400(E400).",
+            "지도 영역 안의 팝업을 페이지 없이 한 번에 조회합니다. 비회원도 조회할 수 있습니다.\n\n" +
+                "노출 조건과 keyword 검색 기준은 목록 API와 같고, 영역 경계에 있는 팝업도 포함합니다. " +
+                "최대 500건이며, 넘으면 조회수가 많은 순으로 반환합니다.\n\n" +
+                "마커와 하단 카드는 이 응답만으로 표시합니다. 상세 API는 조회수를 증가시키므로 카드 표시용으로 호출하지 않습니다. " +
+                "이 API는 조회수를 증가시키지 않습니다.\n\n" +
+                "좌표 4개는 모두 필수입니다. 누락되었거나 숫자가 아니거나, 위도 -90~90 · 경도 -180~180 범위를 벗어나거나, " +
+                "swLat > neLat 또는 swLng > neLng이면 400(E400)을 반환합니다.",
     )
     @Parameters(
         Parameter(name = "swLat", `in` = ParameterIn.QUERY, required = true, description = "남서쪽 위도", example = "37.50"),
@@ -158,7 +150,7 @@ class PopupListController(
     )
     @GetMapping("/map")
     fun findMapPopups(
-        @Parameter(description = "검색어. 목록 API 와 같다(이름 · 브랜드 · 도로명 주소 · 지번 주소 · 지역 이름 부분 일치). 생략하면 영역 안 전체.")
+        @Parameter(description = "검색어. 목록 API의 keyword와 같습니다. 생략하면 영역 안 전체를 조회합니다.")
         @RequestParam(required = false)
         keyword: String?,
         // 누락을 400 으로 응답하려고 선택 파라미터로 받아 MapBounds 에서 필수 여부를 검증한다.

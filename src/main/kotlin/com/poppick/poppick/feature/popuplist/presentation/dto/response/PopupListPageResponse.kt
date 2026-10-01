@@ -18,12 +18,12 @@ private const val POPULAR_PREFIX = "P"
 data class PopupListPageResponse(
     @field:Schema(description = "팝업 목록")
     val content: List<PopupListResponse>,
-    @field:Schema(description = "다음 페이지 존재 여부. true 이면 nextCursor 가 함께 내려간다.", example = "true")
+    @field:Schema(description = "다음 페이지 존재 여부", example = "true")
     val hasNext: Boolean,
     @field:Schema(
         description =
-            "다음 페이지 요청의 cursor 파라미터에 그대로 넣는 값. hasNext 가 false 이면 null. " +
-                "서버 내부 형식이므로 해석하거나 직접 만들지 않는다. 같은 sort · keyword · areaId 요청에만 쓸 수 있다.",
+            "다음 페이지 요청의 cursor로 그대로 보내는 값입니다. hasNext가 false면 null입니다. " +
+                "같은 keyword · sort · areaId 요청에서만 사용할 수 있습니다.",
         example = "MjAyNi0wOS0yMDoxNzE1",
         nullable = true,
     )
