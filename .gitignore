@@ -47,3 +47,4 @@ infra/monitoring/grafana-data/
 .env
 .env.*
 !.env.example
+.DS_Store

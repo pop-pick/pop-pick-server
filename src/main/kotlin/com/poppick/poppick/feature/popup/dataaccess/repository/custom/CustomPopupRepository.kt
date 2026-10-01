@@ -15,7 +15,9 @@ interface CustomPopupRepository {
      * 보강 대상(id 오름차순, 최대 limit 건). 상태가 아니라 데이터로 판단한다.
      * - 미보강: enriched_at IS NULL
      * - 재보강: enrich_retry_count < retryLimit AND enriched_at < retryBefore
-     *   AND (start_date IS NULL OR end_date IS NULL OR interest_category_id IS NULL)
+     *   AND (start_date IS NULL OR end_date IS NULL OR interest_category_id IS NULL OR area_id IS NULL)
+     * area_id 는 재보강 트리거일 뿐 핵심 필드(Popup.hasCoreFields)가 아니다. 상권 밖 팝업은 NULL 이 정상이라
+     * retryLimit 까지만 재시도되고 멈추며, INCOMPLETE 집계에도 들어가지 않는다.
      */
     fun findEnrichTargets(
         retryLimit: Int,

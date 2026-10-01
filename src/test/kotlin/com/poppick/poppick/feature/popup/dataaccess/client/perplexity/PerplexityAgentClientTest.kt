@@ -89,6 +89,7 @@ class PerplexityAgentClientTest :
                 matchesPlace shouldBe true
                 title shouldBe "망그러진 곰 팝업스토어"
                 interestCategory shouldBe "캐릭터/IP"
+                area shouldBe "성수"
                 startDate shouldBe "2026-09-10"
                 openingHours shouldBe "매일 11:00~20:00, 월 휴무"
                 reservationType shouldBe ReservationType.BOTH
