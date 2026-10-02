@@ -14,6 +14,11 @@ data class PopupDetailResponse(
     val description: String?,
     val imageUrls: List<String>?,
     val interestCategoryId: Int?,
+    /** 카테고리 이름(뱃지 표시용). 카테고리가 없거나 알 수 없는 id 면 null. */
+    val interestCategoryName: String?,
+    val areaId: Int?,
+    /** 상권 이름(지역 뱃지 표시용). 상권이 없거나 알 수 없는 id 면 null. */
+    val areaName: String?,
     val startDate: LocalDate?,
     val endDate: LocalDate?,
     val openingHours: String?,
@@ -28,13 +33,18 @@ data class PopupDetailResponse(
     val source: SourceType,
     val sourceUrls: List<String>?,
     val tags: List<String>?,
+    /** 팝픽 상세 조회수. 같은 조회자의 10분 내 재조회는 세지 않는다. */
+    val viewCount: Long,
     @field:Schema(description = "로그인 회원의 찜 여부. 비로그인은 항상 false", example = "false")
     val wished: Boolean,
 ) {
     companion object {
+        /** categoryNames · areaNames 는 id → 이름. */
         fun from(
             popup: Popup,
             wished: Boolean,
+            categoryNames: Map<Int, String>,
+            areaNames: Map<Int, String>,
         ) = PopupDetailResponse(
             popupId = requireNotNull(popup.id),
             title = popup.title,
@@ -42,6 +52,9 @@ data class PopupDetailResponse(
             description = popup.description,
             imageUrls = popup.imageUrls,
             interestCategoryId = popup.interestCategoryId,
+            interestCategoryName = popup.interestCategoryId?.let { categoryNames[it] },
+            areaId = popup.areaId,
+            areaName = popup.areaId?.let { areaNames[it] },
             startDate = popup.startDate,
             endDate = popup.endDate,
             openingHours = popup.openingHours,
@@ -56,6 +69,7 @@ data class PopupDetailResponse(
             source = popup.source,
             sourceUrls = popup.sourceUrls,
             tags = popup.tags,
+            viewCount = popup.viewCount,
             wished = wished,
         )
     }

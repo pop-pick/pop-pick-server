@@ -1,7 +1,9 @@
 package com.poppick.poppick.feature.popuplist.implement
 
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
+import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.feature.popup.implement.PopupSearchReader
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.paging.Slice
@@ -14,7 +16,25 @@ class PopupListReader(
 ) {
     fun findPopups(
         keyword: String?,
+        keywordAreaIds: Collection<Int>,
+        areaId: Int?,
         today: LocalDate,
+        sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
-    ): Slice<Popup> = popupSearchReader.findPopups(keyword, today, cursorable)
+    ): Slice<Popup> = popupSearchReader.findPopups(keyword, keywordAreaIds, areaId, today, sort, cursorable)
+
+    fun findMapPopups(
+        keyword: String?,
+        keywordAreaIds: Collection<Int>,
+        today: LocalDate,
+        bounds: MapBounds,
+        limit: Int,
+    ): List<Popup> = popupSearchReader.findMapPopups(keyword, keywordAreaIds, today, bounds, limit)
+
+    fun findPreferredPopups(
+        categoryIds: Collection<Int>,
+        areaIds: Collection<Int>,
+        today: LocalDate,
+        limit: Int,
+    ): List<Popup> = popupSearchReader.findPreferredPopups(categoryIds, areaIds, today, limit)
 }

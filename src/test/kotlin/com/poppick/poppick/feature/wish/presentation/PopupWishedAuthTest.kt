@@ -6,6 +6,7 @@ import com.poppick.poppick.config.security.SecurityConfig
 import com.poppick.poppick.feature.member.domain.Member
 import com.poppick.poppick.feature.member.implement.MemberFinder
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
+import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.feature.popupdetail.business.PopupDetailService
 import com.poppick.poppick.feature.popupdetail.domain.PopupDetail
 import com.poppick.poppick.feature.popupdetail.presentation.PopupDetailController
@@ -105,13 +106,18 @@ class PopupWishedAuthTest {
         every { jwtValidator.getJti("valid") } returns "jti-1"
         every { accessTokenBlacklist.contains("jti-1") } returns false
         every { memberFinder.find(MEMBER_KEY) } returns member
+        // 목록 · 상세 응답의 카테고리 · 상권 이름(이 테스트의 관심사가 아니라 빈 맵)
+        every { popupListService.findCategoryNames() } returns emptyMap()
+        every { popupListService.findAreaNames() } returns emptyMap()
+        every { popupDetailService.findCategoryNames() } returns emptyMap()
+        every { popupDetailService.findAreaNames() } returns emptyMap()
     }
 
     private fun stubList(
         memberKey: String?,
         vararg items: Pair<Long, Boolean>,
     ) {
-        every { popupListService.findPopups(memberKey, null, cursorable) } returns
+        every { popupListService.findPopups(memberKey, null, null, PopupSortType.LATEST, cursorable) } returns
             Slice(items.map { (id, wished) -> PopupListItem(WishFixtures.popup(id), wished) }, cursorable, false)
     }
 
@@ -140,7 +146,7 @@ class PopupWishedAuthTest {
 
     @Test
     fun `상세 - 토큰 없음은 200, wished = false`() {
-        every { popupDetailService.findPopupDetail(null, 1) } returns PopupDetail(WishFixtures.popup(1), wished = false)
+        every { popupDetailService.findPopupDetail(null, 1, any()) } returns PopupDetail(WishFixtures.popup(1), wished = false)
 
         mockMvc
             .perform(get("/api/v1/popups/1"))
@@ -150,7 +156,7 @@ class PopupWishedAuthTest {
 
     @Test
     fun `상세 - 유효 토큰 + 찜함은 wished = true`() {
-        every { popupDetailService.findPopupDetail(MEMBER_KEY, 1) } returns PopupDetail(WishFixtures.popup(1), wished = true)
+        every { popupDetailService.findPopupDetail(MEMBER_KEY, 1, any()) } returns PopupDetail(WishFixtures.popup(1), wished = true)
 
         mockMvc
             .perform(get("/api/v1/popups/1").header(HttpHeaders.AUTHORIZATION, "Bearer valid"))
@@ -160,7 +166,7 @@ class PopupWishedAuthTest {
 
     @Test
     fun `상세 - 유효 토큰 + 안 찜함은 wished = false`() {
-        every { popupDetailService.findPopupDetail(MEMBER_KEY, 1) } returns PopupDetail(WishFixtures.popup(1), wished = false)
+        every { popupDetailService.findPopupDetail(MEMBER_KEY, 1, any()) } returns PopupDetail(WishFixtures.popup(1), wished = false)
 
         mockMvc
             .perform(get("/api/v1/popups/1").header(HttpHeaders.AUTHORIZATION, "Bearer valid"))
