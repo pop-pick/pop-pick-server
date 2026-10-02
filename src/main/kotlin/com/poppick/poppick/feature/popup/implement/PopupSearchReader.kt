@@ -1,8 +1,10 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupSearchRepository
+import com.poppick.poppick.feature.popup.domain.MapBounds
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupSearchCursor
+import com.poppick.poppick.feature.popup.domain.PopupSortType
 import com.poppick.poppick.global.paging.Cursorable
 import com.poppick.poppick.global.paging.Slice
 import org.springframework.stereotype.Component
@@ -14,7 +16,25 @@ class PopupSearchReader(
 ) {
     fun findPopups(
         keyword: String?,
+        keywordAreaIds: Collection<Int>,
+        areaId: Int?,
         today: LocalDate,
+        sort: PopupSortType,
         cursorable: Cursorable<PopupSearchCursor>,
-    ): Slice<Popup> = popupSearchRepository.findPopups(keyword, today, cursorable).map { it.toDomain() }
+    ): Slice<Popup> = popupSearchRepository.findPopups(keyword, keywordAreaIds, areaId, today, sort, cursorable).map { it.toDomain() }
+
+    fun findMapPopups(
+        keyword: String?,
+        keywordAreaIds: Collection<Int>,
+        today: LocalDate,
+        bounds: MapBounds,
+        limit: Int,
+    ): List<Popup> = popupSearchRepository.findMapPopups(keyword, keywordAreaIds, today, bounds, limit).map { it.toDomain() }
+
+    fun findPreferredPopups(
+        categoryIds: Collection<Int>,
+        areaIds: Collection<Int>,
+        today: LocalDate,
+        limit: Int,
+    ): List<Popup> = popupSearchRepository.findPreferredPopups(categoryIds, areaIds, today, limit).map { it.toDomain() }
 }

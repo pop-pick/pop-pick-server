@@ -61,6 +61,8 @@ data class Popup(
     val enrichRetryCount: Int = 0,
     /** 마지막 보강 시각(타임존 포함). NULL 이면 아직 보강하지 않은 팝업. */
     val enrichedAt: OffsetDateTime? = null,
+    /** 팝픽 상세 조회수(중복 조회 제외). PopupViewCountWriter 의 원자적 UPDATE 로만 증가한다. */
+    val viewCount: Long = 0,
     /** 팝업 식별자(popup_id). 저장 전엔 NULL. */
     val id: Long? = null,
 ) {
