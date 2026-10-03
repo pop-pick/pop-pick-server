@@ -10,6 +10,7 @@ jjwt = "0.12.6"
 querydsl = "7.0"
 springDoc = "3.0.2"
 kotlinLogging = "8.0.4"
+jsoup = "1.23.2"
 
 [libraries]
 # Kotlin
@@ -42,6 +43,9 @@ springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-u
 
 # Log
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlinLogging" }
+
+# Html
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 
 # Test
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }

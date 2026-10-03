@@ -8,6 +8,12 @@ spring:
   jpa:
     open-in-view: false
 
+  task:
+    scheduling:
+      pool:
+        # 수집 배치(최대 40여 분)가 DraftPurger 등 다른 @Scheduled 를 막지 않게 한다
+        size: 2
+
 openai:
   # 플래너 코스 선정(Responses API). 키 · 임베딩 설정은 프로파일별 yml.
   chat-model: gpt-6.1-sol
