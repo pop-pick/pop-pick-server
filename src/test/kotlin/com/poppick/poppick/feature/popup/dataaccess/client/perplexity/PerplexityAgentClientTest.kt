@@ -8,11 +8,14 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import org.hamcrest.Matchers.startsWith
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.mock.http.client.MockClientHttpRequest
 import org.springframework.test.web.client.ExpectedCount
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.ResponseActions
@@ -24,6 +27,7 @@ import org.springframework.test.web.client.response.MockRestResponseCreators.wit
 import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
+import tools.jackson.databind.node.ObjectNode
 import java.time.Duration
 
 class PerplexityAgentClientTest :
@@ -188,5 +192,106 @@ class PerplexityAgentClientTest :
             setup.expectRequest().andRespond(withSuccess(Fixtures.read("perplexity/enrich-not-json.json"), MediaType.APPLICATION_JSON))
 
             shouldThrow<PerplexityClientException> { setup.client.enrich("입력", SearchRecency.YEAR) }
+        }
+
+        test("보강 요청 본문은 도구 타입 일반화 전과 같다(instructions · schema 원문 제외)") {
+            val setup = setUp()
+            val expected = Fixtures.jsonMapper.readTree(Fixtures.read("perplexity/enrich-request-year.json"))
+            setup
+                .expectRequest()
+                .andExpect { request ->
+                    val body = Fixtures.jsonMapper.readTree((request as MockClientHttpRequest).bodyAsString)
+                    (body as ObjectNode).remove("instructions")
+                    (body.get("response_format").get("json_schema") as ObjectNode).remove("schema")
+                    body shouldBe expected
+                }.andRespond(withSuccess(success, MediaType.APPLICATION_JSON))
+
+            setup.client.enrich("입력", SearchRecency.YEAR)
+
+            setup.server.verify()
+        }
+
+        val imageSuccess = Fixtures.read("perplexity/image-success.json")
+
+        fun imageResponse(imageUrlJson: String) =
+            imageSuccess.replace(
+                "\"text\": \"{\\\"image_url\\\": \\\"https://img.example.com/poster.jpg\\\"}\"",
+                "\"text\": \"{\\\"image_url\\\": $imageUrlJson}\"",
+            )
+
+        test("findImage: image_search 도구 하나 · 이미지 스키마로 요청하고, 여러 image_search_results 의 image_url 을 candidates 로 합친다") {
+            val setup = setUp()
+            setup
+                .expectRequest()
+                .andExpect(jsonPath("$.model").value("openai/gpt-6-luna"))
+                .andExpect(jsonPath("$.input").value("팝업 입력"))
+                .andExpect(jsonPath("$.instructions").value(startsWith("너는 서울 팝업스토어 정보 서비스의 이미지 담당이다.")))
+                .andExpect(jsonPath("$.tools.length()").value(1))
+                .andExpect(jsonPath("$.tools[0].type").value("image_search"))
+                .andExpect(jsonPath("$.tools[0].max_results").value(5))
+                .andExpect(jsonPath("$.tools[0].filters").doesNotExist())
+                .andExpect(jsonPath("$.response_format.type").value("json_schema"))
+                .andExpect(jsonPath("$.response_format.json_schema.name").value("popup_image"))
+                .andExpect(jsonPath("$.response_format.json_schema.schema.required[0]").value("image_url"))
+                .andExpect(jsonPath("$.response_format.json_schema.schema.properties.image_url.type[1]").value("null"))
+                .andExpect(jsonPath("$.response_format.json_schema.schema.additionalProperties").value(false))
+                .andExpect(jsonPath("$.max_output_tokens").value(300))
+                .andRespond(withSuccess(imageSuccess, MediaType.APPLICATION_JSON))
+
+            val result = setup.client.findImage("팝업 입력")
+
+            setup.server.verify()
+            result.imageUrl shouldBe "https://img.example.com/poster.jpg"
+            result.candidates shouldContainExactly
+                listOf("https://img.example.com/poster.jpg", "https://img.example.com/map.png", "https://img.example.com/site.jpg")
+            result.usage shouldBe PerplexityUsage(costUsd = 0.0056, inputTokens = 900, outputTokens = 40, searchCalls = 0)
+        }
+
+        test("findImage: image_url 이 null 이거나 빈 문자열이면 imageUrl 은 null") {
+            for (value in listOf("null", "\\\"  \\\"")) {
+                val setup = setUp()
+                setup.expectRequest().andRespond(withSuccess(imageResponse(value), MediaType.APPLICATION_JSON))
+
+                val result = setup.client.findImage("팝업 입력")
+
+                result.imageUrl.shouldBeNull()
+                result.candidates.size shouldBe 3
+            }
+        }
+
+        test("findImage: 잘린 응답 · JSON 아님은 사용량을 담아 예외, 400 은 재시도 없이 예외") {
+            val incomplete = setUp()
+            incomplete
+                .expectRequest()
+                .andRespond(
+                    withSuccess(
+                        imageSuccess
+                            .replace(
+                                "\"status\": \"completed\",\n  \"output\"",
+                                "\"status\": \"incomplete\",\n  \"incomplete_details\": {\"reason\": \"max_output_tokens\"},\n  \"output\"",
+                            ),
+                        MediaType.APPLICATION_JSON,
+                    ),
+                )
+            val truncated = shouldThrow<PerplexityClientException> { incomplete.client.findImage("팝업 입력") }
+            truncated.incompleteReason shouldBe "max_output_tokens"
+            truncated.usage?.costUsd shouldBe 0.0056
+
+            val notJson = setUp()
+            notJson
+                .expectRequest()
+                .andRespond(
+                    withSuccess(
+                        imageSuccess.replace("{\\\"image_url\\\": \\\"https://img.example.com/poster.jpg\\\"}", "이미지 없음"),
+                        MediaType.APPLICATION_JSON,
+                    ),
+                )
+            shouldThrow<PerplexityClientException> { notJson.client.findImage("팝업 입력") }.usage?.costUsd shouldBe 0.0056
+
+            val badRequest = setUp()
+            badRequest.expectRequest().andRespond(withBadRequest().body("{\"error\":\"unsupported tool\"}"))
+            shouldThrow<PerplexityClientException> { badRequest.client.findImage("팝업 입력") }.statusCode shouldBe 400
+            badRequest.server.verify()
+            badRequest.sleeps.shouldBeEmpty()
         }
     })

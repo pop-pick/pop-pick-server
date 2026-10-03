@@ -34,25 +34,46 @@ object Fixtures {
         enrichTimeout: Duration = Duration.ofMinutes(30),
         embedTimeout: Duration = Duration.ofMinutes(5),
         perplexityThreads: Int = 3,
+        imageMaxPerPopup: Int = 1,
     ) = CollectionProperties(
         cron = "0 30 5 * * *",
         enrichLimit = 200,
         enrichRetryLimit = enrichRetryLimit,
         enrichRetryInterval = Duration.ofDays(7),
+        refreshInterval = Duration.ofDays(14),
+        refreshImminentDays = 7,
+        refreshImminentInterval = Duration.ofDays(3),
         collectTimeout = collectTimeout,
         enrichTimeout = enrichTimeout,
         embedTimeout = embedTimeout,
         kakao = CollectionProperties.Pool(threads = 4),
         perplexity = CollectionProperties.Pool(threads = perplexityThreads),
+        image =
+            CollectionProperties.Image(
+                limit = 100,
+                retryInterval = Duration.ofDays(7),
+                timeout = Duration.ofMinutes(10),
+                maxPerPopup = imageMaxPerPopup,
+                allowedSources =
+                    listOf(
+                        CollectionProperties.AllowedSource("popga.co.kr", "/popup/"),
+                        CollectionProperties.AllowedSource("popply.co.kr", "/popup/"),
+                        CollectionProperties.AllowedSource("heypop.kr", "/n/"),
+                        CollectionProperties.AllowedSource("www.newsis.com", "/"),
+                    ),
+            ),
     )
 
-    fun kakaoMapProperties(maxPage: Int = 3) =
-        KakaoMapProperties(
-            baseUrl = "https://dapi.kakao.com",
-            seoulRect = "126.764,37.413,127.184,37.715",
-            maxPage = maxPage,
-            pageDelayMs = 0,
-        )
+    fun kakaoMapProperties(
+        maxPage: Int = 3,
+        maxSplitDepth: Int = 6,
+    ) = KakaoMapProperties(
+        baseUrl = "https://dapi.kakao.com",
+        seoulRect = "126.764,37.413,127.184,37.715",
+        maxPage = maxPage,
+        pageDelayMs = 0,
+        maxSplitDepth = maxSplitDepth,
+    )
 
     fun perplexityProperties() =
         PerplexityProperties(
