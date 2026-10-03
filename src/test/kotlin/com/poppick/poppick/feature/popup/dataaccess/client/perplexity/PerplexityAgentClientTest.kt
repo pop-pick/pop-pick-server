@@ -235,7 +235,7 @@ class PerplexityAgentClientTest :
                 .andExpect(jsonPath("$.response_format.json_schema.schema.required[0]").value("image_url"))
                 .andExpect(jsonPath("$.response_format.json_schema.schema.properties.image_url.type[1]").value("null"))
                 .andExpect(jsonPath("$.response_format.json_schema.schema.additionalProperties").value(false))
-                .andExpect(jsonPath("$.max_output_tokens").value(300))
+                .andExpect(jsonPath("$.max_output_tokens").value(1000))
                 .andRespond(withSuccess(imageSuccess, MediaType.APPLICATION_JSON))
 
             val result = setup.client.findImage("팝업 입력")
