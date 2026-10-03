@@ -10,6 +10,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import java.time.Duration
+import java.time.OffsetDateTime
 import java.util.concurrent.Executor
 
 private val log = KotlinLogging.logger { }
@@ -26,8 +27,9 @@ class KakaoPopupCollector(
     /**
      * 활성 검색어로 카카오맵을 병렬 검색 → 서울 필터 → place id dedupe → 호출 스레드에서 순차 upsert.
      * upsert 를 병렬로 돌리면 (source, external_id) UNIQUE 충돌이 나므로 저장은 반드시 순차로 한다.
+     * 이번에 발견한 장소는 신규 · 기존 모두 last_seen_at = now 로 기록한다.
      */
-    fun collect(): CollectionReport.Collect {
+    fun collect(now: OffsetDateTime): CollectionReport.Collect {
         val startedAt = System.nanoTime()
         val keywords =
             searchKeywordRepository
@@ -41,13 +43,14 @@ class KakaoPopupCollector(
             result.onFailure { log.warn { "collect: 검색 실패 keyword='${keyword.keyword}' ${it.javaClass.simpleName}: ${it.message}" } }
         }
 
-        val fetched = results.flatMap { it.getOrNull().orEmpty() }
+        val searched = results.mapNotNull { it.getOrNull() }
+        val fetched = searched.flatMap { it.places }
         val seoul = fetched.filter { it.isInSeoul() }
         val unique = seoul.distinctBy { it.id }
 
         val upserts =
             unique.map { place ->
-                runCatching { popupWriter.upsertFromKakao(place) }
+                runCatching { popupWriter.upsertFromKakao(place, now) }
                     .onFailure { log.warn { "collect: 저장 실패 placeId=${place.id} ${it.javaClass.simpleName}: ${it.message}" } }
                     .getOrNull()
             }
@@ -56,6 +59,8 @@ class KakaoPopupCollector(
             .Collect(
                 keywords = keywords.size,
                 failedKeywords = results.count { it.isFailure },
+                partialKeywords = searched.count { it.partial },
+                truncatedKeywords = searched.count { it.truncated },
                 fetched = fetched.size,
                 seoul = seoul.size,
                 unique = unique.size,

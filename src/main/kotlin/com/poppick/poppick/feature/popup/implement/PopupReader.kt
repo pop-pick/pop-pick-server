@@ -1,6 +1,8 @@
 package com.poppick.poppick.feature.popup.implement
 
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupRepository
+import com.poppick.poppick.feature.popup.domain.EnrichTarget
+import com.poppick.poppick.feature.popup.domain.EnrichTargetCriteria
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.global.exception.AppException
 import com.poppick.poppick.global.exception.ErrorType
@@ -16,11 +18,16 @@ import java.time.OffsetDateTime
 class PopupReader(
     private val popupRepository: PopupRepository,
 ) {
-    fun findEnrichTargetIds(
-        retryLimit: Int,
+    fun findEnrichTargets(criteria: EnrichTargetCriteria): List<EnrichTarget> =
+        popupRepository.findEnrichTargets(criteria).mapNotNull { entity ->
+            entity.id?.let { EnrichTarget(it, criteria.isRefresh(entity.toDomain())) }
+        }
+
+    fun findImageTargets(
+        today: LocalDate,
         retryBefore: OffsetDateTime,
         limit: Int,
-    ): List<Long> = popupRepository.findEnrichTargets(retryLimit, retryBefore, limit).mapNotNull { it.id }
+    ): List<Popup> = popupRepository.findImageTargets(today, retryBefore, limit).map { it.toDomain() }
 
     fun findEmbedTargets(today: LocalDate): List<Popup> = popupRepository.findEmbedTargets(today).map { it.toDomain() }
 
