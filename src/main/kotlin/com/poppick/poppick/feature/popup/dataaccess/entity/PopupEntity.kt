@@ -55,6 +55,8 @@ class PopupEntity(
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(columnDefinition = "text[]")
     var imageUrls: List<String>? = null,
+    /** 마지막 이미지 수집 시도 시각. 못 찾은 경우에도 갱신한다. */
+    var imageCheckedAt: OffsetDateTime? = null,
     /** 운영 시작일. */
     var startDate: LocalDate? = null,
     /** 운영 종료일. 종료 여부는 저장하지 않고 조회 시 end_date < today 로 계산한다. */
@@ -93,6 +95,8 @@ class PopupEntity(
     var enrichRetryCount: Int = 0,
     /** 마지막 보강 시각(타임존 포함). NULL 이면 아직 보강하지 않은 팝업. */
     var enrichedAt: OffsetDateTime? = null,
+    /** 카카오 키워드 검색에서 마지막으로 발견된 시각. 기록만 한다. */
+    var lastSeenAt: OffsetDateTime? = null,
     /**
      * 팝픽 상세 조회수(중복 조회 제외). INSERT 시 DB DEFAULT 0 으로 채워지고, PopupViewCountRepository 의 원자적 UPDATE 로만 바뀐다.
      * JPA INSERT/UPDATE 에서 제외해 보강 저장(merge)이 예전에 읽은 값으로 덮어쓰지 않게 한다.
@@ -119,6 +123,7 @@ class PopupEntity(
                 description = popup.description,
                 tags = popup.tags,
                 imageUrls = popup.imageUrls,
+                imageCheckedAt = popup.imageCheckedAt,
                 startDate = popup.startDate,
                 endDate = popup.endDate,
                 openingHours = popup.openingHours,
@@ -135,6 +140,7 @@ class PopupEntity(
                 placeResolution = popup.placeResolution,
                 enrichRetryCount = popup.enrichRetryCount,
                 enrichedAt = popup.enrichedAt,
+                lastSeenAt = popup.lastSeenAt,
                 viewCount = popup.viewCount,
                 id = popup.id,
             )
@@ -153,6 +159,7 @@ class PopupEntity(
             description = description,
             tags = tags,
             imageUrls = imageUrls,
+            imageCheckedAt = imageCheckedAt,
             startDate = startDate,
             endDate = endDate,
             openingHours = openingHours,
@@ -169,6 +176,7 @@ class PopupEntity(
             placeResolution = placeResolution,
             enrichRetryCount = enrichRetryCount,
             enrichedAt = enrichedAt,
+            lastSeenAt = lastSeenAt,
             viewCount = viewCount,
             id = id,
         )

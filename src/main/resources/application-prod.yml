@@ -24,6 +24,8 @@ kakao:
     seoul-rect: "126.764,37.413,127.184,37.715"
     max-page: 3
     page-delay-ms: 100
+    # 결과가 45건(15 × 3페이지)에서 잘리면 영역을 4등분해 다시 조회한다. 6 이면 서울 기준 최소 칸이 약 600m.
+    max-split-depth: 6
 
 perplexity:
   api-key: ${PERPLEXITY_API_KEY}
@@ -49,6 +51,11 @@ collection:
   # 총 시도 횟수(최초 1회 + 재보강 1회)
   enrich-retry-limit: 2
   enrich-retry-interval: 7d
+  # 진행 중(end_date >= 오늘) 팝업은 핵심 필드가 차 있어도 이 간격마다 다시 보강한다(종료일 연장 · 운영시간 변경 반영).
+  refresh-interval: 14d
+  # 종료일이 7일 이내면 3일 간격
+  refresh-imminent-days: 7
+  refresh-imminent-interval: 3d
   collect-timeout: 5m
   enrich-timeout: 30m
   embed-timeout: 5m
@@ -56,6 +63,30 @@ collection:
     threads: 4
   perplexity:
     threads: 3
+  image:
+    # 한 번 실행에서 처리할 최대 팝업 수
+    limit: 100
+    # 못 찾은 팝업은 image_checked_at 에서 이만큼 지나야 다시 시도한다
+    retry-interval: 7d
+    # og 에서 못 찾은 팝업은 Perplexity(초당 requests-per-second 공유)로 1건씩 호출해 오래 걸린다
+    timeout: 10m
+    # 팝업당 대표 이미지 1장
+    max-per-popup: 1
+    # og:image 를 읽을 출처 페이지(host 정확히 일치 + 경로 접두사). 목록 페이지는 사이트 로고가 나와 경로로 거른다.
+    allowed-sources:
+      - { host: popga.co.kr, path-prefix: /popup/ }
+      - { host: popply.co.kr, path-prefix: /popup/ }
+      - { host: heypop.kr, path-prefix: /n/ }
+      - { host: fashionbiz.co.kr, path-prefix: / }
+      - { host: www.newsis.com, path-prefix: / }
+      - { host: www.etnews.com, path-prefix: / }
+      - { host: www.hankyung.com, path-prefix: / }
+      - { host: www.mk.co.kr, path-prefix: / }
+      - { host: www.yna.co.kr, path-prefix: / }
+      - { host: www.news1.kr, path-prefix: / }
+      - { host: www.edaily.co.kr, path-prefix: / }
+      - { host: zdnet.co.kr, path-prefix: / }
+      - { host: v.daum.net, path-prefix: / }
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}

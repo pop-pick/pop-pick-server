@@ -14,7 +14,7 @@ data class PerplexityAgentResponse(
         val reason: String? = null,
     )
 
-    /** type = message(content 사용) 또는 search_results(results 사용). 그 외 타입은 무시. */
+    /** type = message(content 사용) 또는 search_results · image_search_results(results 사용). 그 외 타입은 무시. */
     data class OutputItem(
         val type: String,
         val content: List<Content>? = null,
@@ -26,9 +26,15 @@ data class PerplexityAgentResponse(
         val text: String? = null,
     )
 
+    /** search_results 는 url · title, image_search_results 는 image_url · origin_url · width · height · title 을 채운다. */
     data class SearchResult(
         val url: String? = null,
         val title: String? = null,
+        val imageUrl: String? = null,
+        /** 이미지가 실린 페이지. */
+        val originUrl: String? = null,
+        val width: Int? = null,
+        val height: Int? = null,
     )
 
     data class Usage(
@@ -56,6 +62,7 @@ data class PerplexityAgentResponse(
         const val TYPE_MESSAGE = "message"
         const val TYPE_OUTPUT_TEXT = "output_text"
         const val TYPE_SEARCH_RESULTS = "search_results"
+        const val TYPE_IMAGE_SEARCH_RESULTS = "image_search_results"
     }
 
     fun isIncomplete() = status == STATUS_INCOMPLETE
@@ -81,5 +88,13 @@ data class PerplexityAgentResponse(
             .filter { it.type == TYPE_SEARCH_RESULTS }
             .flatMap { it.results.orEmpty() }
             .mapNotNull { it.url?.takeIf { url -> url.isNotBlank() } }
+            .distinct()
+
+    /** 이미지 검색을 여러 번 하면 image_search_results 항목이 여러 개 온다. 전부 모아 등장 순으로 중복 제거. */
+    fun imageSearchResultUrls() =
+        output
+            .filter { it.type == TYPE_IMAGE_SEARCH_RESULTS }
+            .flatMap { it.results.orEmpty() }
+            .mapNotNull { it.imageUrl?.takeIf { url -> url.isNotBlank() } }
             .distinct()
 }

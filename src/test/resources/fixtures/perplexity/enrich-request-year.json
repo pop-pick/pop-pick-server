@@ -1,0 +1,28 @@
+{
+  "model": "openai/gpt-6-luna",
+  "input": "입력",
+  "tools": [
+    {
+      "filters": {
+        "search_recency_filter": "year",
+        "search_domain_filter": [
+          "-popupkorea.co.kr"
+        ]
+      },
+      "type": "web_search",
+      "search_context_size": "medium",
+      "max_results": 20,
+      "user_location": {
+        "country": "KR",
+        "city": "Seoul"
+      }
+    }
+  ],
+  "response_format": {
+    "json_schema": {
+      "name": "popup_enrichment"
+    },
+    "type": "json_schema"
+  },
+  "max_output_tokens": 1500
+}

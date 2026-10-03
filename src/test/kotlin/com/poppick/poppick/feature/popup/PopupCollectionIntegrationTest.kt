@@ -1,9 +1,13 @@
 package com.poppick.poppick.feature.popup
 
 import com.poppick.poppick.feature.popup.business.PopupCollectionService
+import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityAgentClient
 import com.poppick.poppick.feature.popup.dataaccess.entity.PopupEntity
 import com.poppick.poppick.feature.popup.dataaccess.repository.PopupRepository
+import com.poppick.poppick.feature.popup.domain.EnrichTargetCriteria
+import com.poppick.poppick.feature.popup.domain.ImagePrompt
 import com.poppick.poppick.feature.popup.domain.SourceType
+import com.poppick.poppick.feature.popup.implement.PopupReader
 import com.poppick.poppick.global.util.KST
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotContain
@@ -31,11 +35,34 @@ class PopupCollectionIntegrationTest {
     @Autowired
     lateinit var popupRepository: PopupRepository
 
+    @Autowired
+    lateinit var popupReader: PopupReader
+
+    @Autowired
+    lateinit var perplexityAgentClient: PerplexityAgentClient
+
     private val now = OffsetDateTime.now(KST)
 
     @Test
     fun run() {
         println(popupCollectionService.run())
+    }
+
+    /**
+     * image_search + json_schema 조합이 받아들여지는지 확인한다(Perplexity 과금, DB 는 읽기만).
+     * 1706 텐먼스 · 2159 논타입 · 2177 K-뷰티 캠페인. 400 이 나면 PerplexityAgentClient 가 응답 본문을 WARN 으로 남긴다.
+     */
+    @Test
+    fun findImage() {
+        val today = LocalDate.now(KST)
+        for (id in listOf(1706L, 2159L, 2177L)) {
+            val popup = popupReader.findById(id)
+            val result = perplexityAgentClient.findImage(ImagePrompt.build(popup, today))
+            println(
+                "popupId=$id title=${popup.title} imageUrl=${result.imageUrl} inCandidates=${result.imageUrl in result.candidates} " +
+                    "cost=$${"%.4f".format(result.usage.costUsd)} candidates=${result.candidates}",
+            )
+        }
     }
 
     @Test
@@ -74,6 +101,15 @@ class PopupCollectionIntegrationTest {
 
     private fun enrichTargetIds() =
         popupRepository
-            .findEnrichTargets(retryLimit = 2, retryBefore = now.minusDays(7), limit = Int.MAX_VALUE)
-            .map { it.id }
+            .findEnrichTargets(
+                EnrichTargetCriteria(
+                    retryLimit = 2,
+                    retryBefore = now.minusDays(7),
+                    today = LocalDate.now(KST),
+                    refreshBefore = now.minusDays(14),
+                    imminentUntil = LocalDate.now(KST).plusDays(7),
+                    imminentRefreshBefore = now.minusDays(3),
+                    limit = Int.MAX_VALUE,
+                ),
+            ).map { it.id }
 }

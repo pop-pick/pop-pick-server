@@ -6,20 +6,25 @@ import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.Fixtures
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityAgentClient
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityClientException
+import com.poppick.poppick.feature.popup.domain.EnrichTarget
+import com.poppick.poppick.feature.popup.domain.EnrichTargetCriteria
 import com.poppick.poppick.feature.popup.domain.PerplexityEnrichResult
 import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 import com.poppick.poppick.feature.popup.domain.Popup
 import com.poppick.poppick.feature.popup.domain.PopupEnrichment
 import com.poppick.poppick.feature.popup.domain.SourceType
+import com.poppick.poppick.global.util.KST
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
 import java.time.Duration
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.util.concurrent.Executor
 
 class PopupEnricherTest :
@@ -60,7 +65,8 @@ class PopupEnricherTest :
                 every { popupWriter.save(any()) } answers { firstArg() }
             }
 
-            fun targets(vararg ids: Long) = every { popupReader.findEnrichTargetIds(any(), any(), any()) } returns ids.toList()
+            fun targets(vararg ids: Long) =
+                every { popupReader.findEnrichTargets(any()) } returns ids.map { EnrichTarget(it, refresh = false) }
         }
 
         val badRequest = PerplexityClientException("Perplexity 요청 실패 status=400", statusCode = 400)
@@ -132,5 +138,28 @@ class PopupEnricherTest :
 
             report.failed shouldBe 7
             report.skipped shouldBe 0
+        }
+
+        test("미보강 · 재시도 · 진행 중 갱신 조건으로 대상을 고르고, 갱신 사유 대상 수를 refreshed 로 센다") {
+            val fixture = Fixture()
+            val criteria = slot<EnrichTargetCriteria>()
+            every { fixture.popupReader.findEnrichTargets(capture(criteria)) } returns
+                listOf(EnrichTarget(1, refresh = false), EnrichTarget(2, refresh = true), EnrichTarget(3, refresh = true))
+            every { fixture.perplexityAgentClient.enrich(any(), any()) } returns notFound
+            val before = OffsetDateTime.now(KST)
+
+            val report = fixture.enricher.enrich(today)
+
+            with(criteria.captured) {
+                retryLimit shouldBe 2
+                this.today shouldBe today
+                imminentUntil shouldBe today.plusDays(7)
+                limit shouldBe 200
+                Duration.between(retryBefore, refreshBefore) shouldBe Duration.ofDays(-7)
+                Duration.between(imminentRefreshBefore, retryBefore) shouldBe Duration.ofDays(-4)
+                (refreshBefore <= before.minusDays(14).plusMinutes(1)) shouldBe true
+            }
+            report.targets shouldBe 3
+            report.refreshed shouldBe 2
         }
     })

@@ -6,6 +6,7 @@ import com.poppick.poppick.feature.member.implement.InterestCategoryReader
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityAgentClient
 import com.poppick.poppick.feature.popup.dataaccess.client.perplexity.PerplexityClientException
 import com.poppick.poppick.feature.popup.domain.CollectionReport
+import com.poppick.poppick.feature.popup.domain.EnrichTargetCriteria
 import com.poppick.poppick.feature.popup.domain.EnrichmentPrompt
 import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 import com.poppick.poppick.feature.popup.domain.Popup
@@ -51,13 +52,8 @@ class PopupEnricher(
     fun enrich(today: LocalDate): CollectionReport.Enrich {
         val startedAt = System.nanoTime()
         val deadline = startedAt + collectionProperties.enrichTimeout.toNanos()
-        val retryBefore = OffsetDateTime.now(KST).minus(collectionProperties.enrichRetryInterval)
-        val targetIds =
-            popupReader.findEnrichTargetIds(
-                collectionProperties.enrichRetryLimit,
-                retryBefore,
-                collectionProperties.enrichLimit,
-            )
+        val targets = popupReader.findEnrichTargets(targetCriteria(today, OffsetDateTime.now(KST)))
+        val targetIds = targets.map { it.popupId }
         val categories = interestCategoryReader.findAll().associate { it.category to it.id }
         val areas = favoriteAreaReader.findAll().associate { it.area to it.id }
 
@@ -106,6 +102,7 @@ class PopupEnricher(
         return CollectionReport
             .Enrich(
                 targets = targetIds.size,
+                refreshed = targets.count { it.refresh },
                 enriched = outcomes.count { it.found },
                 notFound = outcomes.count { !it.found },
                 failed = results.count { it.isFailure },
@@ -119,6 +116,20 @@ class PopupEnricher(
                 elapsed = Duration.ofNanos(System.nanoTime() - startedAt),
             ).also { log.info { it.summary() } }
     }
+
+    /** 미보강 · 핵심 필드 공백 재시도 · 진행 중 갱신(종료 임박이면 더 짧은 간격). */
+    private fun targetCriteria(
+        today: LocalDate,
+        now: OffsetDateTime,
+    ) = EnrichTargetCriteria(
+        retryLimit = collectionProperties.enrichRetryLimit,
+        retryBefore = now.minus(collectionProperties.enrichRetryInterval),
+        today = today,
+        refreshBefore = now.minus(collectionProperties.refreshInterval),
+        imminentUntil = today.plusDays(collectionProperties.refreshImminentDays),
+        imminentRefreshBefore = now.minus(collectionProperties.refreshImminentInterval),
+        limit = collectionProperties.enrichLimit,
+    )
 
     private fun remaining(deadline: Long) = (deadline - System.nanoTime()).coerceAtLeast(0)
 
