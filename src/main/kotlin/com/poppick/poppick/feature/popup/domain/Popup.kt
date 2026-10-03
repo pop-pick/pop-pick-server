@@ -24,8 +24,10 @@ data class Popup(
     val description: String? = null,
     /** 세부 키워드 목록. */
     val tags: List<String>? = null,
-    /** 대표 이미지 URL 목록. */
+    /** 대표 이미지 URL 목록. image 단계가 출처 페이지 og:image · 카카오 이미지 검색으로 채운다(URL 만 저장). */
     val imageUrls: List<String>? = null,
+    /** 마지막 이미지 수집 시도 시각. 못 찾은 경우에도 갱신해 retry-interval 동안 다시 시도하지 않는다. */
+    val imageCheckedAt: OffsetDateTime? = null,
     /** 운영 시작일. */
     val startDate: LocalDate? = null,
     /** 운영 종료일. 종료 여부는 저장하지 않고 조회 시 end_date < today 로 계산한다. */
@@ -61,6 +63,8 @@ data class Popup(
     val enrichRetryCount: Int = 0,
     /** 마지막 보강 시각(타임존 포함). NULL 이면 아직 보강하지 않은 팝업. */
     val enrichedAt: OffsetDateTime? = null,
+    /** 카카오 키워드 검색에서 마지막으로 발견된 시각(기록만 한다. 노출 · 보강 조건에는 쓰지 않는다). */
+    val lastSeenAt: OffsetDateTime? = null,
     /** 팝픽 상세 조회수(중복 조회 제외). PopupViewCountWriter 의 원자적 UPDATE 로만 증가한다. */
     val viewCount: Long = 0,
     /** 팝업 식별자(popup_id). 저장 전엔 NULL. */
