@@ -1,0 +1,6 @@
+{
+  "type": "object",
+  "properties": { "image_url": { "type": ["string", "null"] } },
+  "required": ["image_url"],
+  "additionalProperties": false
+}
