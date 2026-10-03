@@ -1,0 +1,58 @@
+{
+  "id": "resp_img_01",
+  "object": "response",
+  "created_at": 1759480000,
+  "model": "openai/gpt-6-luna",
+  "status": "completed",
+  "output": [
+    {
+      "type": "image_search_results",
+      "queries": ["망그러진 곰 팝업스토어"],
+      "results": [
+        {
+          "image_url": "https://img.example.com/poster.jpg",
+          "origin_url": "https://news.example.com/article/1",
+          "width": 1080,
+          "height": 1350,
+          "title": "망그러진 곰 팝업스토어 포스터"
+        },
+        {
+          "image_url": "https://img.example.com/map.png",
+          "origin_url": "https://map.example.com/1",
+          "width": 800,
+          "height": 600,
+          "title": "지도"
+        }
+      ]
+    },
+    {
+      "type": "image_search_results",
+      "queries": ["망그러진 곰 성수 팝업 현장"],
+      "results": [
+        {
+          "image_url": "https://img.example.com/site.jpg",
+          "origin_url": "https://blog.example.com/2",
+          "width": 1200,
+          "height": 900
+        },
+        {
+          "image_url": "https://img.example.com/poster.jpg",
+          "origin_url": "https://news.example.com/article/1"
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "id": "msg_img_01",
+      "role": "assistant",
+      "status": "completed",
+      "content": [{ "type": "output_text", "text": "{\"image_url\": \"https://img.example.com/poster.jpg\"}" }]
+    }
+  ],
+  "usage": {
+    "input_tokens": 900,
+    "output_tokens": 40,
+    "total_tokens": 940,
+    "cost": { "currency": "USD", "input_cost": 0.0005, "output_cost": 0.0001, "tool_calls_cost": 0.005, "total_cost": 0.0056 }
+  }
+}

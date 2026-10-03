@@ -5,6 +5,7 @@ import com.poppick.poppick.feature.popup.dataaccess.client.kakao.KakaoMapClient
 import com.poppick.poppick.feature.popup.dataaccess.entity.SearchKeywordEntity
 import com.poppick.poppick.feature.popup.dataaccess.repository.SearchKeywordRepository
 import com.poppick.poppick.feature.popup.domain.KakaoPlace
+import com.poppick.poppick.feature.popup.domain.KakaoSearchResult
 import com.poppick.poppick.feature.popup.domain.SourceType
 import com.poppick.poppick.feature.popup.implement.PopupWriter.UpsertResult
 import io.kotest.core.spec.style.FunSpec
@@ -13,6 +14,8 @@ import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifySequence
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.Collections
 import java.util.concurrent.Executors
 
@@ -20,6 +23,7 @@ class KakaoPopupCollectorTest :
     FunSpec({
         val executor = Executors.newFixedThreadPool(4)
         afterSpec { executor.shutdownNow() }
+        val now = OffsetDateTime.of(2026, 10, 3, 5, 30, 0, 0, ZoneOffset.ofHours(9))
 
         fun place(
             id: String,
@@ -33,7 +37,7 @@ class KakaoPopupCollectorTest :
         val seongsuAgain = seongsu.copy(placeName = "중복")
         val gangnam = place("4", "서울 강남구 역삼동 1")
 
-        test("서울 필터 · place id dedupe 후 호출 스레드에서 순차 upsert, 검색어 하나가 실패해도 나머지는 저장한다") {
+        test("서울 필터 · place id dedupe 후 호출 스레드에서 순차 upsert(발견 시각 전달), 검색어 하나가 실패해도 나머지는 저장한다") {
             val searchKeywordRepository = mockk<SearchKeywordRepository>()
             val kakaoMapClient = mockk<KakaoMapClient>()
             val popupWriter = mockk<PopupWriter>()
@@ -44,27 +48,30 @@ class KakaoPopupCollectorTest :
                 listOf("성수동 팝업스토어", "실패하는 검색어", "강남 팝업스토어").mapIndexed { i, keyword ->
                     SearchKeywordEntity(keyword = keyword, targetSource = SourceType.KAKAO_MAP, id = i + 1L)
                 }
-            every { kakaoMapClient.searchAll("성수동 팝업스토어") } returns listOf(seongsu, hanam, roadOnly)
+            every { kakaoMapClient.searchAll("성수동 팝업스토어") } returns
+                KakaoSearchResult(listOf(seongsu, hanam, roadOnly), partial = true, truncated = true)
             every { kakaoMapClient.searchAll("실패하는 검색어") } throws IllegalStateException("kakao 500")
-            every { kakaoMapClient.searchAll("강남 팝업스토어") } returns listOf(seongsuAgain, gangnam)
+            every { kakaoMapClient.searchAll("강남 팝업스토어") } returns KakaoSearchResult(listOf(seongsuAgain, gangnam), truncated = true)
 
             val upsertThreads = Collections.synchronizedList(mutableListOf<String>())
-            every { popupWriter.upsertFromKakao(any()) } answers {
+            every { popupWriter.upsertFromKakao(any(), any()) } answers {
                 upsertThreads += Thread.currentThread().name
                 if (firstArg<KakaoPlace>().id == "4") UpsertResult.UPDATED else UpsertResult.CREATED
             }
 
-            val report = collector.collect()
+            val report = collector.collect(now)
 
             verifySequence {
-                popupWriter.upsertFromKakao(seongsu)
-                popupWriter.upsertFromKakao(roadOnly)
-                popupWriter.upsertFromKakao(gangnam)
+                popupWriter.upsertFromKakao(seongsu, now)
+                popupWriter.upsertFromKakao(roadOnly, now)
+                popupWriter.upsertFromKakao(gangnam, now)
             }
             upsertThreads shouldContainOnly listOf(Thread.currentThread().name)
 
             report.keywords shouldBe 3
             report.failedKeywords shouldBe 1
+            report.partialKeywords shouldBe 1
+            report.truncatedKeywords shouldBe 2
             report.fetched shouldBe 5
             report.seoul shouldBe 4
             report.unique shouldBe 3
@@ -83,13 +90,15 @@ class KakaoPopupCollectorTest :
 
             every { searchKeywordRepository.findAllByTargetSourceAndIsActiveTrueOrderByIdAsc(SourceType.KAKAO_MAP) } returns
                 listOf(SearchKeywordEntity(keyword = "성수동 팝업스토어", targetSource = SourceType.KAKAO_MAP, id = 1))
-            every { kakaoMapClient.searchAll(any()) } returns listOf(seongsu, gangnam)
-            every { popupWriter.upsertFromKakao(seongsu) } throws RuntimeException("unique violation")
-            every { popupWriter.upsertFromKakao(gangnam) } returns UpsertResult.UPDATED
+            every { kakaoMapClient.searchAll(any()) } returns KakaoSearchResult(listOf(seongsu, gangnam))
+            every { popupWriter.upsertFromKakao(seongsu, now) } throws RuntimeException("unique violation")
+            every { popupWriter.upsertFromKakao(gangnam, now) } returns UpsertResult.UPDATED
 
-            val report = collector.collect()
+            val report = collector.collect(now)
 
             report.failed shouldBe 1
             report.updated shouldBe 1
+            report.partialKeywords shouldBe 0
+            report.truncatedKeywords shouldBe 0
         }
     })

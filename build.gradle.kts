@@ -63,6 +63,9 @@ dependencies {
     // Log
     implementation(libs.kotlin.logging)
 
+    // Html
+    implementation(libs.jsoup)
+
     // test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
