@@ -41,6 +41,10 @@ perplexity:
   model: openai/gpt-6-luna
   read-timeout-seconds: 120
   requests-per-second: 1.0
+  # 보강 요청의 max_steps. 생략하면 1 스텝(검색 1턴)이라 재검색이 안 된다. 프롬프트의 검색 상한(6회)과 맞춘다.
+  enrich-max-steps: 6
+  # 보강 요청의 max_output_tokens. max-steps 6 에서 1500 은 잘림(incomplete)이 났다.
+  enrich-max-output-tokens: 4000
 
 openai:
   api-key: ${OPENAI_API_KEY}
@@ -53,7 +57,7 @@ openai:
 
 collection:
   # Asia/Seoul 기준
-  cron: "0 46 22 * * *"
+  cron: "0 03 19 * * *"
   enrich-limit: 200
   # 총 시도 횟수(최초 1회 + 재보강 1회)
   enrich-retry-limit: 2
