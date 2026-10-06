@@ -34,7 +34,7 @@ class CustomPopupEmbeddingRepositoryImpl : CustomPopupEmbeddingRepository {
             WHERE e.kind = :kind AND e.model = :model
               AND p.area_id = :areaId
               AND (p.start_date IS NULL OR p.start_date <= :visitDate)
-              AND p.end_date >= :visitDate
+              AND (p.end_date IS NULL OR p.end_date >= :visitDate)
               AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
               $exclude
             ORDER BY $orderBy

@@ -163,6 +163,9 @@ class PopupEnricher(
 
     /**
      * 팝업 1건 보강. 호출 · 파싱 실패 시 예외가 나며 DB 는 건드리지 않는다.
+     * 예외로 응답 잘림(incomplete)만은 enriched_at = now · retry+1 을 저장한 뒤 다시 던진다.
+     * 같은 요청은 다시 잘릴 가능성이 높아, 미보강(enriched_at IS NULL)으로 남겨 매 배치 재호출하지 않고
+     * 재시도 한도 · 간격(enrich-retry-limit · enrich-retry-interval)을 따르게 한다.
      * onUsage 는 응답을 받은 직후(병합 · 저장 전) 호출된다.
      */
     fun enrichOne(
@@ -174,9 +177,22 @@ class PopupEnricher(
     ): EnrichOutcome {
         rateLimiter.acquire()
         val popup = popupReader.findById(popupId)
-        val result = perplexityAgentClient.enrich(EnrichmentPrompt.build(popup, today), SearchRecency.of(popup))
+        val result =
+            try {
+                perplexityAgentClient.enrich(EnrichmentPrompt.build(popup, today), SearchRecency.of(popup))
+            } catch (e: PerplexityClientException) {
+                if (e.incompleteReason != null) recordAttempt(popup)
+                throw e
+            }
         onUsage(result.usage)
         val merged = popupEnrichmentMerger.merge(popup, result, categories, areas, OffsetDateTime.now(KST))
         return EnrichOutcome(popupWriter.save(merged), result.enrichment.describesPlace())
+    }
+
+    // 저장이 실패해도 원래 예외(응답 잘림)를 실패 사유로 남긴다.
+    private fun recordAttempt(popup: Popup) {
+        runCatching {
+            popupWriter.save(popup.copy(enrichRetryCount = popup.enrichRetryCount + 1, enrichedAt = OffsetDateTime.now(KST)))
+        }.onFailure { log.warn { "enrich: 잘림 기록 저장 실패 popupId=${popup.id} ${it.javaClass.simpleName}: ${it.message}" } }
     }
 }

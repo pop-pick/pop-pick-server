@@ -82,6 +82,8 @@ object Fixtures {
             model = "openai/gpt-6-luna",
             readTimeoutSeconds = 120,
             requestsPerSecond = 1.0,
+            enrichMaxSteps = 6,
+            enrichMaxOutputTokens = 4000,
         )
 
     fun openAiProperties(

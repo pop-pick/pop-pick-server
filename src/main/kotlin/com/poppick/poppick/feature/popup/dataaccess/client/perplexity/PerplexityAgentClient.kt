@@ -86,6 +86,8 @@ class PerplexityAgentClient(
                 instructions = instructions,
                 tools = listOf(PerplexityAgentRequest.WebSearchTool(PerplexityAgentRequest.Filters(recency.value))),
                 responseFormat = PerplexityAgentRequest.ResponseFormat(PerplexityAgentRequest.JsonSchema(SCHEMA_NAME, schema)),
+                maxOutputTokens = properties.enrichMaxOutputTokens,
+                maxSteps = properties.enrichMaxSteps,
             )
 
         val response = call(request)

@@ -9,6 +9,7 @@ import java.time.LocalDate
 data class CandidateCondition(
     /** favorite_area id. popup.area_id 로 pre-filter. */
     val areaId: Int,
+    /** 방문일. popup 운영 기간(start_date ~ end_date, NULL 은 제한 없음) 안에 드는 팝업만 남긴다. */
     val visitDate: LocalDate,
     /** 관심 카테고리 이름(interest_category.category). */
     val categories: List<String>,

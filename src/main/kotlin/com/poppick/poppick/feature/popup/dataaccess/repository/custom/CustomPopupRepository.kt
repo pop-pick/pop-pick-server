@@ -15,8 +15,8 @@ interface CustomPopupRepository {
     /**
      * 보강 대상(최대 criteria.limit 건). 상태가 아니라 데이터로 판단한다. 조건은 EnrichTargetCriteria 참고.
      * 정렬은 enriched_at ASC NULLS FIRST, popup_id ASC 라 미보강 팝업이 limit 안에서 항상 먼저 처리된다.
-     * area_id 는 재보강 트리거일 뿐 핵심 필드(Popup.hasCoreFields)가 아니다. 상권 밖 팝업은 NULL 이 정상이라
-     * retryLimit 까지만 재시도되고 멈추며, INCOMPLETE 집계에도 들어가지 않는다.
+     * area_id 는 재보강 트리거일 뿐 핵심 필드(Popup.hasCoreFields)가 아니다. 보강 응답이 항상 상권을 채우므로
+     * 보통은 첫 보강에서 채워지고, 매핑에 실패하면 retryLimit 까지만 재시도되고 멈추며 INCOMPLETE 집계에도 들어가지 않는다.
      */
     fun findEnrichTargets(criteria: EnrichTargetCriteria): List<PopupEntity>
 
