@@ -97,6 +97,15 @@ class CoursePromptTest :
             rendered shouldContain "  운영: ~ 2026-10-12"
         }
 
+        test("시작일만 있으면 종료일을 '미정' 으로 쓴다") {
+            val popup = bare.copy(startDate = LocalDate.of(2026, 9, 1))
+
+            val rendered = CoursePrompt.build(condition, candidates(popup))
+
+            rendered shouldContain "  운영: 2026-09-01 ~ 미정"
+            rendered shouldNotContain "null"
+        }
+
         test("소개는 150자에서 자른다") {
             val rendered = CoursePrompt.build(condition, candidates(full.copy(description = "가".repeat(200))))
 

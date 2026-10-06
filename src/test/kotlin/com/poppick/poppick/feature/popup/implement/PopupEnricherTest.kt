@@ -116,6 +116,39 @@ class PopupEnricherTest :
             report.searchCalls shouldBe 4
         }
 
+        test("응답 잘림은 enriched_at · retry 만 기록하고 다른 필드는 그대로, 실패로 센다") {
+            val fixture = Fixture()
+            fixture.targets(1)
+            val original = popup(1).copy(enrichRetryCount = 1, brand = "브랜드", interestCategoryId = 1)
+            every { fixture.popupReader.findById(1) } returns original
+            every { fixture.perplexityAgentClient.enrich(any(), any()) } throws
+                PerplexityClientException("응답 잘림", incompleteReason = "max_output_tokens")
+            val saved = slot<Popup>()
+            every { fixture.popupWriter.save(capture(saved)) } answers { firstArg() }
+            val before = OffsetDateTime.now(KST)
+
+            val report = fixture.enricher.enrich(today)
+
+            report.failed shouldBe 1
+            verify(exactly = 1) { fixture.popupWriter.save(any()) }
+            saved.captured shouldBe original.copy(enrichRetryCount = 2, enrichedAt = saved.captured.enrichedAt)
+            (saved.captured.enrichedAt!! >= before) shouldBe true
+            verify(exactly = 0) { fixture.popupEnrichmentMerger.merge(any(), any(), any(), any(), any()) }
+        }
+
+        test("응답 잘림 외의 실패(4xx · 재시도 소진 · 파싱 실패)는 DB 를 건드리지 않는다") {
+            val fixture = Fixture()
+            fixture.targets(1, 2, 3)
+            every { fixture.perplexityAgentClient.enrich(any(), any()) } throws badRequest andThenThrows
+                PerplexityClientException("Perplexity 재시도 소진 status=503") andThenThrows
+                PerplexityClientException("Perplexity output_text JSON 파싱 실패")
+
+            val report = fixture.enricher.enrich(today)
+
+            report.failed shouldBe 3
+            verify(exactly = 0) { fixture.popupWriter.save(any()) }
+        }
+
         test("favorite_area 를 이름 → id 맵으로 만들어 merge 에 넘긴다") {
             val fixture = Fixture()
             fixture.targets(1)

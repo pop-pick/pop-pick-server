@@ -12,6 +12,7 @@ import com.poppick.poppick.feature.popup.domain.SourceType
 import com.poppick.poppick.feature.popup.implement.PopupEmbeddingReader
 import com.poppick.poppick.feature.popup.implement.PopupReader
 import com.poppick.poppick.global.util.KST
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.nulls.shouldBeNull
@@ -73,42 +74,42 @@ class PlannerCandidateIntegrationTest {
         val excluded: Long,
     )
 
-    private fun seed(): Seed {
-        fun save(
-            name: String,
-            vector: FloatArray,
-            area: Int = areaId,
-            startDate: LocalDate? = today.minusDays(3),
-            endDate: LocalDate = today.plusDays(10),
-            latitude: Double? = 37.5563,
-        ): Long {
-            val popup =
-                popupRepository.saveAndFlush(
-                    PopupEntity(
-                        source = SourceType.KAKAO_MAP,
-                        externalId = "planner-it-$name",
-                        title = "플래너 검색 테스트 $name",
-                        areaId = area,
-                        startDate = startDate,
-                        endDate = endDate,
-                        latitude = latitude,
-                        longitude = 126.9236,
-                    ),
-                )
-            popupEmbeddingRepository.saveAndFlush(
-                PopupEmbeddingEntity(
-                    popupId = popup.id!!,
-                    kind = PopupEmbedding.KIND_PROFILE,
-                    model = model,
-                    contentText = name,
-                    contentHash = name,
-                    embedding = vector,
+    private fun save(
+        name: String,
+        vector: FloatArray,
+        area: Int = areaId,
+        startDate: LocalDate? = today.minusDays(3),
+        endDate: LocalDate? = today.plusDays(10),
+        latitude: Double? = 37.5563,
+    ): Long {
+        val popup =
+            popupRepository.saveAndFlush(
+                PopupEntity(
+                    source = SourceType.KAKAO_MAP,
+                    externalId = "planner-it-$name",
+                    title = "플래너 검색 테스트 $name",
+                    areaId = area,
+                    startDate = startDate,
+                    endDate = endDate,
+                    latitude = latitude,
+                    longitude = 126.9236,
                 ),
             )
-            return popup.id!!
-        }
+        popupEmbeddingRepository.saveAndFlush(
+            PopupEmbeddingEntity(
+                popupId = popup.id!!,
+                kind = PopupEmbedding.KIND_PROFILE,
+                model = model,
+                contentText = name,
+                contentHash = name,
+                embedding = vector,
+            ),
+        )
+        return popup.id!!
+    }
 
-        return Seed(
+    private fun seed() =
+        Seed(
             same = save("same", same, startDate = null),
             orthogonal = save("orthogonal", orthogonal),
             opposite = save("opposite", opposite),
@@ -118,7 +119,6 @@ class PlannerCandidateIntegrationTest {
             noCoordinates = save("no-coordinates", same, latitude = null),
             excluded = save("excluded", same),
         )
-    }
 
     private fun search(
         seed: Seed,
@@ -156,6 +156,22 @@ class PlannerCandidateIntegrationTest {
         val ids = search(seed).map { it.popupId }
 
         ids shouldNotContain seed.notStarted
+        ids shouldNotContain seed.ended
+    }
+
+    @Test
+    @Transactional
+    fun `종료일이 없으면 진행 중으로 보고 시작일만 확인한다`() {
+        val seed = seed()
+        val noPeriod = save("no-period", same, startDate = null, endDate = null)
+        val openEnded = save("open-ended", same, endDate = null)
+        val openEndedFuture = save("open-ended-future", same, startDate = today.plusDays(1), endDate = null)
+
+        val ids = search(seed).map { it.popupId }
+
+        ids shouldContain noPeriod
+        ids shouldContain openEnded
+        ids shouldNotContain openEndedFuture
         ids shouldNotContain seed.ended
     }
 
