@@ -15,12 +15,16 @@ private val log = KotlinLogging.logger { }
 
 /**
  * 보강 결과를 기존 팝업에 병합한다(순수 함수, 로그 외 부수효과 없음). 상태는 두지 않으며 저장된 팝업은 전부 노출된다.
- * - found=false 또는 matches_place=false → retry+1, enrichedAt 만 갱신. 나머지 필드는 전부 유지.
- * - 그 외 → 필드 병합. 핵심 필드(기간 · 카테고리) 중 하나라도 비면 retry+1, 모두 채워지면 그대로.
+ * - matches_place=false → 다른 팝업으로 채운 오귀속이라 retry+1, enrichedAt · areaId · interestCategoryId 만 갱신. 나머지 필드는 전부 유지.
+ *   area 는 주소 기준, 카테고리는 장소 업종 기준 판단이라 이 경우에도 반영한다.
+ * - 그 외(found=false 포함) → 값이 있는 필드만 병합. 부분 정보도 버리지 않는다.
+ *   핵심 필드(기간 · 카테고리) 중 하나라도 비면 retry+1, 모두 채워지면 그대로.
+ *   검색 결과 URL 은 found=true 일 때만 sourceUrls 에 붙인다(못 찾은 검색의 URL 은 출처가 아니다).
  *   재보강 대상은 이 카운터와 핵심 필드 공백으로만 판단하므로(findEnrichTargets) retry 갱신을 빠뜨리지 않는다.
  * 장소 필드(placeId · placeName · address* · 좌표 · placeResolution) 와 source · externalId · rawPayload 는 절대 덮지 않는다.
  * 재보강은 결과 편차가 커서, 새 응답이 비어 있는 필드는 기존 값을 유지한다(reservationType 은 UNKNOWN 이면 유지).
- * 상권(areaId)은 핵심 필드가 아니라 retry 판정에 넣지 않는다.
+ * 카테고리는 모든 분기에서 `새 값 ?: 기존 값` 으로 반영하고, 둘 다 없으면 "기타" 로 채운다(WARN).
+ * 상권(areaId)은 핵심 필드가 아니라 retry 판정에 넣지 않는다. 응답 area 가 비었거나 매핑되지 않으면 WARN 후 기존 값을 유지한다.
  */
 @Component
 class PopupEnrichmentMerger {
@@ -33,6 +37,9 @@ class PopupEnrichmentMerger {
 
         /** 기간이 이보다 길면 WARN 만 남긴다(뉴발란스 5/9~11/14 처럼 사실인 경우가 있어 값은 유지). */
         private const val LONG_PERIOD_SUSPECT_DAYS = 180
+
+        /** 응답 카테고리가 비었거나 매핑되지 않고 기존 값도 없을 때 쓰는 interest_category.category. */
+        private const val FALLBACK_CATEGORY = "기타"
     }
 
     fun merge(
@@ -47,11 +54,18 @@ class PopupEnrichmentMerger {
         if (enrichment.found && !enrichment.matchesPlace) {
             log.warn { "enrich: 장소 불일치 popupId=${popup.id} placeName=${popup.placeName} 응답 title=${enrichment.title}" }
         }
-        if (!enrichment.describesPlace()) return popup.copy(enrichRetryCount = popup.enrichRetryCount + 1, enrichedAt = now)
+        val areaId = mapArea(popup, enrichment.area, areas) ?: popup.areaId
+        val interestCategoryId = mergeCategory(popup, enrichment.interestCategory, categories)
+        if (!enrichment.matchesPlace) {
+            return popup.copy(
+                areaId = areaId,
+                interestCategoryId = interestCategoryId,
+                enrichRetryCount = popup.enrichRetryCount + 1,
+                enrichedAt = now,
+            )
+        }
 
         val (startDate, endDate) = mergePeriod(popup, enrichment)
-        val interestCategoryId = enrichment.interestCategory?.let { categories[it] } ?: popup.interestCategoryId
-        val areaId = mapArea(popup.id, enrichment.area, areas) ?: popup.areaId
 
         val merged =
             popup.copy(
@@ -74,7 +88,12 @@ class PopupEnrichmentMerger {
                     verifiedReservationUrl(popup.id, enrichment.reservationUrl, result.searchResultUrls) ?: popup.reservationUrl,
                 reservationOpenAt = enrichment.reservationOpenAt.toOffsetDateTimeOrNull() ?: popup.reservationOpenAt,
                 entryFee = enrichment.entryFee?.takeIf { it >= 0 } ?: popup.entryFee,
-                sourceUrls = (popup.sourceUrls.orEmpty() + result.searchResultUrls.take(MAX_SOURCE_URLS)).distinct(),
+                sourceUrls =
+                    if (enrichment.found) {
+                        (popup.sourceUrls.orEmpty() + result.searchResultUrls.take(MAX_SOURCE_URLS)).distinct()
+                    } else {
+                        popup.sourceUrls
+                    },
                 enrichedAt = now,
             )
         return if (merged.hasCoreFields()) merged else merged.copy(enrichRetryCount = popup.enrichRetryCount + 1)
@@ -135,18 +154,29 @@ class PopupEnrichmentMerger {
         endDate.dayOfMonth == 31 &&
         ChronoUnit.DAYS.between(startDate, endDate) > YEAR_END_SUSPECT_DAYS
 
-    // 스키마 enum 으로 막혀 있지만, favorite_area 에 없는 이름이 오면 WARN 후 무시한다.
+    // 새 값 ?: 기존 값 ?: "기타". 스키마상 필수 enum 이라 "기타" 로 떨어지는 건 모델이 스키마를 어긴 경우뿐이다.
+    private fun mergeCategory(
+        popup: Popup,
+        category: String?,
+        categories: Map<String, Int>,
+    ): Int? {
+        category.nonBlank()?.let { categories[it] }?.let { return it }
+        popup.interestCategoryId?.let { return it }
+        log.warn { "enrich: 카테고리 매핑 실패, $FALLBACK_CATEGORY 로 저장 popupId=${popup.id} interestCategory=$category" }
+        return categories[FALLBACK_CATEGORY]
+    }
+
+    // 스키마상 필수 enum 이지만, 비었거나 favorite_area 에 없는 이름이 오면 WARN 후 무시한다.
     private fun mapArea(
-        popupId: Long?,
+        popup: Popup,
         area: String?,
         areas: Map<String, Int>,
-    ): Int? {
-        if (area == null) return null
-        return areas[area] ?: run {
-            log.warn { "enrich: 알 수 없는 상권 popupId=$popupId area=$area" }
+    ): Int? =
+        area.nonBlank()?.let { areas[it] } ?: run {
+            val address = popup.addressRoad.nonBlank() ?: popup.addressJibun
+            log.warn { "enrich: 알 수 없는 상권 popupId=${popup.id} address=$address area=$area" }
             null
         }
-    }
 
     // 모델이 지어낸 URL 을 막기 위해 검색 결과에 정확히 있거나 같은 host 의 URL 이 있을 때만 채택한다.
     private fun verifiedReservationUrl(

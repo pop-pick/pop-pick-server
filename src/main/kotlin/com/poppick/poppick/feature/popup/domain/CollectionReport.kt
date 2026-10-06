@@ -51,11 +51,17 @@ data class CollectionReport(
         val targets: Int,
         /** targets 중 진행 중 갱신(핵심 필드가 차 있어도 refresh 간격이 지난 진행 중 팝업) 사유로 고른 대상. */
         val refreshed: Int,
-        /** 이 장소의 팝업 정보를 받아 병합한 건수. */
+        /** 이 장소의 팝업 정보를 받아 병합한 건수(found=true 이고 matches_place=true). */
         val enriched: Int,
-        /** 정보를 못 찾았거나(found=false) 다른 팝업을 가져온(matches_place=false) 건수. */
+        /**
+         * 확인한 값이 하나도 없거나(found=false) 다른 팝업을 가져온(matches_place=false) 건수.
+         * found=false 라도 모델이 값을 채웠으면 그 값은 병합된다(area 는 항상).
+         */
         val notFound: Int,
-        /** 호출 · 파싱 · 저장 실패(DB 미반영) 및 타임아웃. */
+        /**
+         * 호출 · 파싱 · 저장 실패 및 타임아웃. 대부분 DB 미반영이지만,
+         * 응답 잘림(incomplete)은 enriched_at · retry 만 기록된다(재시도 한도 · 간격을 따르게).
+         */
         val failed: Int,
         /** 4xx 연속 · 타임아웃으로 제출하지 않은 대상. */
         val skipped: Int,

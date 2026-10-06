@@ -62,7 +62,8 @@ class PopupEnrichmentMergerTest :
                 entryFee = 5000,
             )
         val empty = PopupEnrichment(found = true, matchesPlace = true)
-        val notFound = PopupEnrichment(found = false, matchesPlace = true)
+        // 스키마상 interest_category 는 found=false 여도 항상 온다.
+        val notFound = PopupEnrichment(found = false, matchesPlace = true, interestCategory = "기타")
         val searchUrls = listOf("https://www.instagram.com/p/abc", "https://booking.naver.com/booking/6/bizes/123")
 
         fun merge(
@@ -76,16 +77,60 @@ class PopupEnrichmentMergerTest :
 
         context("정보를 못 찾음") {
             test("found=false → retry+1 · enrichedAt 만 바뀌고 다른 필드는 그대로") {
-                merge(notFound) shouldBe popup.copy(enrichRetryCount = 1, enrichedAt = now)
+                merge(notFound) shouldBe popup.copy(interestCategoryId = 8, enrichRetryCount = 1, enrichedAt = now)
             }
 
-            test("이미 채워진 팝업에 found=false 가 와도 값은 유지된다") {
-                merge(notFound, base = complete) shouldBe complete.copy(enrichRetryCount = 1, enrichedAt = now)
+            test("이미 채워진 팝업에 빈 found=false 가 와도 값은 유지되고, 핵심 필드가 차 있어 retry 는 그대로") {
+                merge(notFound.copy(interestCategory = null), base = complete) shouldBe complete
             }
 
-            test("matches_place=false 는 found=false 와 같이 응답 값을 버린다") {
-                merge(found.copy(matchesPlace = false, title = "다른 브랜드 팝업")) shouldBe
-                    popup.copy(enrichRetryCount = 1, enrichedAt = now)
+            test("found=false 의 기타도 새 값이라 기존 카테고리를 덮는다(새 값 ?: 기존 값)") {
+                merge(notFound, base = complete) shouldBe complete.copy(interestCategoryId = 8)
+            }
+
+            test("found=false 여도 값이 있는 필드는 반영하고 나머지는 기존 값 유지, 출처 URL 은 붙이지 않는다") {
+                val partial =
+                    notFound.copy(interestCategory = null, brand = "새 브랜드", description = "부분 소개.", startDate = "2026-09-20")
+
+                merge(partial, base = complete) shouldBe
+                    complete.copy(brand = "새 브랜드", description = "부분 소개.", startDate = LocalDate.of(2026, 9, 20))
+                merge(partial) shouldBe
+                    popup.copy(
+                        brand = "새 브랜드",
+                        description = "부분 소개.",
+                        startDate = LocalDate.of(2026, 9, 20),
+                        interestCategoryId = 8,
+                        enrichRetryCount = 1,
+                        enrichedAt = now,
+                    )
+            }
+
+            test("start_date 만 있으면 시작일만, end_date 만 있으면 종료일만 반영한다") {
+                val startOnly = merge(notFound.copy(startDate = "2026-09-20"))
+                startOnly.startDate shouldBe LocalDate.of(2026, 9, 20)
+                startOnly.endDate.shouldBeNull()
+
+                val endOnly = merge(empty.copy(endDate = "2026-10-30"))
+                endOnly.startDate.shouldBeNull()
+                endOnly.endDate shouldBe LocalDate.of(2026, 10, 30)
+                endOnly.enrichRetryCount shouldBe 1
+            }
+
+            test("matches_place=false 는 오귀속이라 카테고리 · area 외의 응답 값을 버린다(found=true 여도)") {
+                merge(found.copy(matchesPlace = false, title = "다른 브랜드 팝업", area = null)) shouldBe
+                    popup.copy(interestCategoryId = 1, enrichRetryCount = 1, enrichedAt = now)
+            }
+
+            test("found=false 여도 area · 카테고리는 반영한다") {
+                merge(notFound.copy(area = "홍대", interestCategory = "뷰티")) shouldBe
+                    popup.copy(areaId = 3, interestCategoryId = 5, enrichRetryCount = 1, enrichedAt = now)
+            }
+
+            test("matches_place=false 여도 카테고리 · area 는 반영한다. 나머지 필드는 그대로, retry+1") {
+                merge(found.copy(matchesPlace = false, title = "다른 브랜드 팝업", area = "용산", interestCategory = "F&B")) shouldBe
+                    popup.copy(areaId = 5, interestCategoryId = 3, enrichRetryCount = 1, enrichedAt = now)
+                merge(found.copy(matchesPlace = false, title = "다른 브랜드 팝업", interestCategory = "F&B"), base = complete) shouldBe
+                    complete.copy(interestCategoryId = 3, enrichRetryCount = 1)
             }
         }
 
@@ -104,11 +149,11 @@ class PopupEnrichmentMergerTest :
                 merge(found.copy(startDate = null)).enrichRetryCount shouldBe 1
             }
 
-            test("카테고리를 매핑하지 못하면 retry+1") {
+            test("카테고리를 매핑하지 못해도 기타로 채워져 기간이 있으면 retry 는 그대로") {
                 val merged = merge(found.copy(interestCategory = "없는 카테고리"))
 
-                merged.interestCategoryId.shouldBeNull()
-                merged.enrichRetryCount shouldBe 1
+                merged.interestCategoryId shouldBe 8
+                merged.enrichRetryCount shouldBe 0
             }
 
             test("재보강으로 핵심 필드가 채워지면 retry 는 그대로") {
@@ -292,6 +337,51 @@ class PopupEnrichmentMergerTest :
             }
         }
 
+        context("카테고리(interest_category)") {
+            fun categoryWarnings(
+                enrichment: PopupEnrichment,
+                base: Popup = popup,
+            ) = LogCapture(PopupEnrichmentMerger::class.java.name).use { capture ->
+                merge(enrichment, base = base) to capture.messages().filter { "카테고리 매핑 실패" in it }
+            }
+
+            test("found=false 여도 카테고리를 반영한다") {
+                merge(notFound.copy(interestCategory = "전시/아트")).interestCategoryId shouldBe 4
+                merge(notFound.copy(interestCategory = "전시/아트"), base = complete).interestCategoryId shouldBe 4
+            }
+
+            test("응답이 null 이고 기존 값도 없으면 기타로 저장하고 WARN") {
+                val (merged, logs) = categoryWarnings(notFound.copy(interestCategory = null))
+
+                merged.interestCategoryId shouldBe 8
+                logs shouldBe listOf("enrich: 카테고리 매핑 실패, 기타 로 저장 popupId=1 interestCategory=null")
+            }
+
+            test("매핑 불가 값이고 기존 값도 없으면 기타로 저장하고 WARN") {
+                val (merged, logs) = categoryWarnings(found.copy(matchesPlace = false, interestCategory = "판교"))
+
+                merged.interestCategoryId shouldBe 8
+                logs shouldBe listOf("enrich: 카테고리 매핑 실패, 기타 로 저장 popupId=1 interestCategory=판교")
+            }
+
+            test("응답이 null · 매핑 불가여도 기존 값이 있으면 유지하고 WARN 은 없다") {
+                val (nullMerged, nullLogs) = categoryWarnings(notFound.copy(interestCategory = null), base = complete)
+                val (unknownMerged, unknownLogs) = categoryWarnings(found.copy(interestCategory = "판교"), base = complete)
+
+                nullMerged.interestCategoryId shouldBe 1
+                unknownMerged.interestCategoryId shouldBe 1
+                (nullLogs + unknownLogs).shouldBeEmpty()
+            }
+
+            test("기타 id 는 이름으로 찾는다") {
+                val shuffled = categories + ("기타" to 99)
+
+                merger
+                    .merge(popup, PerplexityEnrichResult(notFound.copy(interestCategory = null), searchUrls), shuffled, areas, now)
+                    .interestCategoryId shouldBe 99
+            }
+        }
+
         context("상권(area)") {
             fun areaWarnings(
                 enrichment: PopupEnrichment,
@@ -318,12 +408,25 @@ class PopupEnrichmentMergerTest :
                 val (merged, logs) = areaWarnings(found.copy(area = "판교"), base = complete)
 
                 merged.areaId shouldBe 1
-                logs shouldBe listOf("enrich: 알 수 없는 상권 popupId=1 area=판교")
+                logs shouldBe listOf("enrich: 알 수 없는 상권 popupId=1 address=서울 성동구 연무장길 10 area=판교")
             }
 
-            test("found=false 면 areaId 는 바뀌지 않는다") {
-                merge(notFound.copy(area = "홍대"), base = complete).areaId shouldBe 1
-                merge(notFound.copy(area = "홍대")).areaId.shouldBeNull()
+            test("응답 area 가 비면 기존 값을 유지하고 WARN 을 남긴다") {
+                val (merged, logs) = areaWarnings(found.copy(area = " "), base = complete)
+
+                merged.areaId shouldBe 1
+                logs shouldBe listOf("enrich: 알 수 없는 상권 popupId=1 address=서울 성동구 연무장길 10 area= ")
+            }
+
+            test("found=false 여도 새 area 가 있으면 기존 값을 덮는다") {
+                merge(notFound.copy(area = "홍대"), base = complete).areaId shouldBe 3
+            }
+
+            test("found=false 에 매핑 불가 area 면 기존 값 유지") {
+                val (merged, logs) = areaWarnings(notFound.copy(area = "판교", interestCategory = null), base = complete)
+
+                merged shouldBe complete
+                logs shouldBe listOf("enrich: 알 수 없는 상권 popupId=1 address=서울 성동구 연무장길 10 area=판교")
             }
 
             test("areaId 가 비어도 핵심 필드가 차 있으면 retry 는 그대로") {

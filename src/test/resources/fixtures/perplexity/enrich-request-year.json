@@ -24,5 +24,6 @@
     },
     "type": "json_schema"
   },
-  "max_output_tokens": 1500
+  "max_output_tokens": 4000,
+  "max_steps": 6
 }

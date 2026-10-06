@@ -45,9 +45,20 @@ class EnrichmentPromptTest :
             input shouldNotContain "참고:"
         }
 
+        test("좌표가 있으면 주소 다음 줄에 넣는다") {
+            val lines = EnrichmentPrompt.build(popup.copy(latitude = 37.5446, longitude = 127.0559), today).lines()
+
+            lines[3] shouldBe "좌표: 위도 37.5446, 경도 127.0559"
+            lines[4] shouldBe "참고: http://place.map.kakao.com/1001"
+        }
+
+        test("위도 · 경도 중 하나라도 없으면 좌표 줄을 생략한다") {
+            EnrichmentPrompt.build(popup.copy(latitude = 37.5446), today) shouldNotContain "좌표:"
+        }
+
         test("재시도(retry > 0)면 다시 찾으라는 문구로 바꾼다") {
             EnrichmentPrompt.build(popup.copy(enrichRetryCount = 1), today).lines().last() shouldBe
-                "이전 검색에서 이 팝업의 기간을 확인하지 못했다. 다른 검색어와 출처로 다시 찾아 JSON 으로 정리해줘."
+                "이전 검색에서 이 팝업의 정보를 일부 확인하지 못했다. 다른 검색어와 출처로 다시 찾아 JSON 으로 정리해줘."
         }
 
         test("도로명이 없으면 지번 주소") {

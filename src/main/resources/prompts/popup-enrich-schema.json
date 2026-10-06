@@ -5,8 +5,8 @@
     "matches_place": { "type": "boolean" },
     "title": { "type": ["string", "null"] },
     "brand": { "type": ["string", "null"] },
-    "interest_category": { "type": ["string", "null"], "enum": ["캐릭터/IP", "패션/브랜드", "F&B", "전시/아트", "뷰티", "게임/엔터", "라이프스타일", "기타", null] },
-    "area": { "type": ["string", "null"], "enum": ["성수", "여의도", "홍대", "잠실", "용산", "종로", "강남", null], "description": "팝업이 속한 상권. 주소·좌표 기준. 아래 상권 정의 중 하나, 어디에도 안 들면 null." },
+    "interest_category": { "type": "string", "enum": ["캐릭터/IP", "패션/브랜드", "F&B", "전시/아트", "뷰티", "게임/엔터", "라이프스타일", "기타"], "description": "팝업의 주된 성격. 팝업 정보를 못 찾았으면 장소의 업종으로, 근거가 없으면 기타. found·matches_place 와 무관하게 항상 채운다." },
+    "area": { "type": "string", "enum": ["성수", "여의도", "홍대", "잠실", "용산", "종로", "강남"], "description": "팝업이 속한 상권. 주소·좌표 기준. 상권 정의에 들면 그 상권, 아니면 가장 가까운 상권. found·matches_place 와 무관하게 항상 채운다." },
     "description": { "type": ["string", "null"] },
     "tags": { "type": ["array", "null"], "items": { "type": "string" }, "maxItems": 10, "description": "팝업 성격을 나타내는 명사형 키워드 3~6개(브랜드명 · IP명 · 상품군 · 체험 유형). 장소명 · 날짜 · 시간 · 문장 금지." },
     "start_date": { "type": ["string", "null"] },
@@ -17,5 +17,5 @@
     "reservation_open_at": { "type": ["string", "null"] },
     "entry_fee": { "type": ["integer", "null"], "description": "입장료(원). 무료가 확인되면 0, 유료면 원 단위 숫자, 확인 안 되면 null." }
   },
-  "required": ["found", "matches_place", "reservation_type"]
+  "required": ["found", "matches_place", "interest_category", "area", "reservation_type"]
 }
