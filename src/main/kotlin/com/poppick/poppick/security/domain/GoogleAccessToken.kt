@@ -8,7 +8,7 @@ data class GoogleAccessToken(
     val tokenType: String,
     val accessToken: String,
     val expiresIn: Int,
-    val refreshToken: String,
+    val refreshToken: String? = null,
     val refreshTokenExpiresIn: Int? = null,
     val scope: String? = null,
     val idToken: String? = null,
