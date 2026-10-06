@@ -12,4 +12,11 @@ data class PerplexityProperties(
     val readTimeoutSeconds: Long,
     /** 보강 요청 속도 제한(초당 요청 수). */
     val requestsPerSecond: Double,
+    /**
+     * 보강 요청의 max_steps(에이전트 루프 횟수, 1 스텝 = 도구를 부를 수 있는 모델 턴 1회).
+     * 생략하면 API 가 1 로 둬서 재검색이 불가능하다. 프롬프트의 검색 상한(6회)과 맞춘다.
+     */
+    val enrichMaxSteps: Int,
+    /** 보강 요청의 max_output_tokens. 스텝이 늘면 1500 으로는 응답이 잘려(incomplete) 여유 있게 둔다. */
+    val enrichMaxOutputTokens: Int,
 )
