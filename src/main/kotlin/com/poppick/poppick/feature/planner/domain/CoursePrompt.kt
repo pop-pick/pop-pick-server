@@ -26,6 +26,9 @@ import java.util.Locale
 object CoursePrompt {
     private const val MAX_DESCRIPTION_LENGTH = 150
     private const val MAX_NOTE_LENGTH = 200
+
+    /** 종료일 미정 표기. */
+    private const val UNDECIDED = "미정"
     private val WHITESPACE = Regex("\\s+")
 
     /**
@@ -114,13 +117,16 @@ object CoursePrompt {
         ).joinToString("\n")
     }
 
-    /** "2026-06-19 ~ 2026-11-01 · 매일 11:00~20:00". 기간 · 운영시간이 모두 없으면 NULL. */
+    /**
+     * "2026-06-19 ~ 2026-11-01 · 매일 11:00~20:00". 기간 · 운영시간이 모두 없으면 NULL.
+     * 시작일만 없으면 "~ 종료일", 종료일만 없으면 "시작일 ~ 미정".
+     */
     private fun operation(popup: Popup): String? {
         val period =
             if (popup.startDate == null && popup.endDate == null) {
                 null
             } else {
-                listOfNotNull(popup.startDate?.toString(), "~", popup.endDate?.toString()).joinToString(" ")
+                listOfNotNull(popup.startDate?.toString(), "~", popup.endDate?.toString() ?: UNDECIDED).joinToString(" ")
             }
         return listOfNotNull(period, popup.openingHours.clean()).joinToString(" · ").clean()
     }
