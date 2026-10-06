@@ -10,6 +10,9 @@ data class PerplexityAgentRequest(
     val tools: List<Tool>,
     val responseFormat: ResponseFormat,
     val maxOutputTokens: Int = 1500,
+    /** 에이전트 루프 상한(1~). NULL 이면 키를 보내지 않아 API 기본값(모델 지정 시 1)을 쓴다. */
+    @get:JsonInclude(JsonInclude.Include.NON_NULL)
+    val maxSteps: Int? = null,
 ) {
     /** 도구 1개. 실제 타입의 프로퍼티로 직렬화된다(타입 정보 필드는 따로 붙지 않는다). */
     sealed interface Tool {

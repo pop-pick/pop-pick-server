@@ -2,7 +2,10 @@ package com.poppick.poppick.feature.popup.dataaccess.client.perplexity
 
 import com.poppick.poppick.feature.popup.domain.PerplexityUsage
 
-/** Perplexity 호출 실패(재시도 소진 · 4xx · 응답 잘림 · 응답 파싱 실패). 해당 팝업은 DB 반영 없이 건너뛴다. */
+/**
+ * Perplexity 호출 실패(재시도 소진 · 4xx · 응답 잘림 · 응답 파싱 실패).
+ * 응답 잘림(incompleteReason != null)은 보강 시도로 기록하고(enriched_at · retry), 그 외에는 DB 반영 없이 건너뛴다.
+ */
 class PerplexityClientException(
     message: String,
     cause: Throwable? = null,
