@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface MemberInterestCategoryRepository : JpaRepository<MemberInterestCategoryEntity, Long> {
     fun findAllByMemberKey(memberKey: String): List<MemberInterestCategoryEntity>
+
+    fun deleteByMemberKey(memberKey: String)
 }

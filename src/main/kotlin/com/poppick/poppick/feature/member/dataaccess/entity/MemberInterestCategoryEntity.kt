@@ -1,5 +1,6 @@
 package com.poppick.poppick.feature.member.dataaccess.entity
 
+import com.poppick.poppick.global.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -17,7 +18,7 @@ class MemberInterestCategoryEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_interest_category_id")
     var id: Long? = null,
-) {
+) : BaseEntity() {
     companion object {
         fun new(
             interestCategoryId: Int,
