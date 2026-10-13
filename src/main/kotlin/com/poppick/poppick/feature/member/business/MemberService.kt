@@ -21,4 +21,14 @@ class MemberService(
 
         memberRegistrar.registerDetails(onboardingInfo)
     }
+
+    fun updateOnBoardingInfo(onboardingInfo: OnboardingInfo) {
+        val member = memberFinder.find(onboardingInfo.memberKey)
+
+        if (memberFinder.existsMemberDetail(member.memberKey)) {
+            throw AppException(ErrorType.ALREADY_REGISTERED)
+        }
+
+        memberRegistrar.updateDetails(onboardingInfo)
+    }
 }

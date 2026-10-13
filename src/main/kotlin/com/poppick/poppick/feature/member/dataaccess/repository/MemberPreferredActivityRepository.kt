@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface MemberPreferredActivityRepository : JpaRepository<MemberPreferredActivityEntity, Long> {
     fun findAllByMemberKey(memberKey: String): List<MemberPreferredActivityEntity>
+
+    fun deleteByMemberKey(memberKey: String)
 }
