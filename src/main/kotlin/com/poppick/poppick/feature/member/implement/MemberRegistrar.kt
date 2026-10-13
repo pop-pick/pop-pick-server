@@ -27,6 +27,17 @@ class MemberRegistrar(
     fun register(newMember: NewMember) = memberRepository.save(MemberEntity.from(newMember)).memberKey
 
     @Transactional
+    fun updateDetails(onboardingInfo: OnboardingInfo) {
+        memberDetailRepository.deleteByMemberKey(onboardingInfo.memberKey)
+
+        memberFavoriteAreaRepository.deleteByMemberKey(onboardingInfo.memberKey)
+        memberInterestCategoryRepository.deleteByMemberKey(onboardingInfo.memberKey)
+        memberPreferredActivityRepository.deleteByMemberKey(onboardingInfo.memberKey)
+
+        registerDetails(onboardingInfo)
+    }
+
+    @Transactional
     fun registerDetails(onboardingInfo: OnboardingInfo) {
         memberDetailRepository.save(MemberDetailEntity.from(onboardingInfo))
 

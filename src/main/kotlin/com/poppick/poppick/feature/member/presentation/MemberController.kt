@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -27,6 +28,17 @@ class MemberController(
         @Valid @RequestBody request: OnboardingRegisterRequest,
     ): ResponseEntity<ApiResponse<Unit>> {
         memberService.registerOnBoardingInfo(request.toOnboardingInfo(member.memberKey))
+
+        return ResponseEntity.ok(ApiResponse.success())
+    }
+
+    @Operation(summary = "온보딩 정보 업데이트 (덮어쓰기)", description = "회원가입 한 유저의 온보딩 정보를 업데이트한다.")
+    @PutMapping("/me/onboarding")
+    fun updateOnboardingInfo(
+        @AuthMember member: Member,
+        @Valid @RequestBody request: OnboardingRegisterRequest,
+    ): ResponseEntity<ApiResponse<Unit>> {
+        memberService.updateOnBoardingInfo(request.toOnboardingInfo(member.memberKey))
 
         return ResponseEntity.ok(ApiResponse.success())
     }

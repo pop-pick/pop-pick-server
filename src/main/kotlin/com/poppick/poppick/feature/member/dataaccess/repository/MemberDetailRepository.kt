@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface MemberDetailRepository :
     JpaRepository<MemberDetailEntity, Long>,
-    CustomMemberDetailRepository
+    CustomMemberDetailRepository {
+    fun deleteByMemberKey(memberKey: String)
+}
